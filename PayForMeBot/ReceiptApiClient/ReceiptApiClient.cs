@@ -1,6 +1,8 @@
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.JsonObjects;
 
 namespace PayForMeBot.ReceiptApiClient;
@@ -18,7 +20,7 @@ public class ReceiptApiClient : IReceiptApiClient
         httpClient = new HttpClient();
     }
 
-    public async Task<ReceiptApiResponse> SendReceiptImage(byte[] imageBytes)
+    public async Task<ReceiptApiResponse> GetReceiptApiResponse(byte[] receiptImageBytes)
     {
         var url = config.GetValue<string>("RECEIPT_API_URL");
         var token = config.GetValue<string>("RECEIPT_API_TOKEN");
@@ -29,7 +31,7 @@ public class ReceiptApiClient : IReceiptApiClient
         }
 
         var formData = new MultipartFormDataContent();
-        formData.Add(new ByteArrayContent(imageBytes), "qrfile", "filename");
+        formData.Add(new ByteArrayContent(receiptImageBytes), "qrfile", "filename");
         formData.Add(new StringContent(token), "token");
         
         log.LogInformation("Send request to {url}", url);
@@ -38,8 +40,14 @@ public class ReceiptApiClient : IReceiptApiClient
         var stringResponse = await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync();
 
         var jObject = JObject.Parse(stringResponse);
+
+        var code = (jObject["code"] ?? throw new JsonException("Receipt api send unexpected json")).Value<int>();
+
+        if (code != 1) 
+            throw new ReceiptNotFoundException(code);
+        
         var receiptApiResponse = jObject.ToObject<ReceiptApiResponse>();
 
-        return receiptApiResponse ?? throw new ArgumentException("Receipt api response is null");
+        return receiptApiResponse ?? throw new JsonException("Process json failed");
     }
 }

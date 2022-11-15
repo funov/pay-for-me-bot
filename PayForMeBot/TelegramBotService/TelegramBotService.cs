@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualBasic;
+using Newtonsoft.Json;
 using PayForMeBot.ReceiptApiClient;
+using PayForMeBot.ReceiptApiClient.Exceptions;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -77,7 +79,7 @@ public class TelegramBotService : ITelegramBotService
         
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: "You said:\n" + message.Text,
+            text: "Ты написал:\n" + message.Text,
             cancellationToken: cancellationToken);
     }
 
@@ -107,18 +109,38 @@ public class TelegramBotService : ITelegramBotService
             encryptedContent = stream.ToArray();
         }
 
-        var receiptApiResponse = await receiptApiClient.SendReceiptImage(encryptedContent);
-
-        var botMessageText =
-            $"Название магазина: {receiptApiResponse.Data.Json.ShopName}\n" +
-            $"Суммарная стоимость: {receiptApiResponse.Data.Json.TotalSum / 100.0} рублей\n\n" +
-            "Товары:\n" +
-            $"{Strings.Join(receiptApiResponse.Data.Json.Items.Select(x => $"{x.Name} — {x.TotalPrice / 100.0} рублей").ToArray(), "\n")}";
-
+        var botMessageText = await GetBotMessageText(encryptedContent);
+        
         await client.SendTextMessageAsync(
             chatId: chatId,
             text: botMessageText,
             cancellationToken: cancellationToken);
+    }
+
+    private async Task<string> GetBotMessageText(byte[] encryptedContent)
+    {
+        string botMessageText;
+        
+        try
+        {
+            var receiptApiResponse = await receiptApiClient.GetReceiptApiResponse(encryptedContent);
+            
+            botMessageText =
+                $"Название магазина: {receiptApiResponse.Data.Json.ShopName}\n" +
+                $"Суммарная стоимость: {receiptApiResponse.Data.Json.TotalSum / 100.0} рублей\n\n" +
+                "Товары:\n" +
+                $"{Strings.Join(receiptApiResponse.Data.Json.Items.Select(x => $"{x.Name} — {x.TotalPrice / 100.0} рублей").ToArray(), "\n")}";
+        }
+        catch (ReceiptNotFoundException)
+        {
+            botMessageText = "Не удалось обработать чек, возможно на фото нет чека";
+        }
+        catch (JsonException)
+        {
+            botMessageText = "Обработка изображений временно недоступна";
+        }
+
+        return botMessageText;
     }
 
     private Task HandlePollingErrorAsync(ITelegramBotClient client, Exception exception, 

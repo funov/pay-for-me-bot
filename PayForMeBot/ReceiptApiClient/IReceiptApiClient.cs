@@ -4,5 +4,5 @@ namespace PayForMeBot.ReceiptApiClient;
 
 public interface IReceiptApiClient
 {
-    public Task<ReceiptApiResponse> SendReceiptImage(byte[] imageBytes);
+    public Task<ReceiptApiResponse> GetReceiptApiResponse(byte[] receiptImageBytes);
 }
