@@ -58,56 +58,66 @@ public class TelegramBotService : ITelegramBotService
 
     private async Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
     {
-        if (update.Message is { Type: MessageType.Photo })
+        switch (update.Message)
         {
-            if (update.Message.Photo == null)
-                return;
-
-            var fileId = update.Message.Photo.Last().FileId;
-            var fileInfo = await client.GetFileAsync(fileId, cancellationToken: cancellationToken);
-
-            if (fileInfo.FilePath == null)
-                throw new ArgumentException("FilePath is null");
-            
-            var filePath = fileInfo.FilePath;
-            
-            log.LogInformation("Received a '{photoPath}' message in chat {chatId}", filePath, update.Message.Chat.Id);
-            
-            var encryptedContent = Array.Empty<byte>();
-
-            if (fileInfo.FileSize != null)
-            {
-                using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
-                await client.DownloadFileAsync(filePath, stream, cancellationToken);
-                encryptedContent = stream.ToArray();
-            }
-
-            var receiptApiResponse = await receiptApiClient.SendReceiptImage(encryptedContent);
-
-            var botMessageText =
-                $"Название магазина: {receiptApiResponse.Data.Json.ShopName}\n" +
-                $"Суммарная стоимость: {receiptApiResponse.Data.Json.TotalSum / 100.0} рублей\n\n" +
-                "Товары:\n" +
-                $"{Strings.Join(receiptApiResponse.Data.Json.Items.Select(x => $"{x.Name} — {x.TotalPrice / 100.0} рублей").ToArray(), "\n")}";
-
-            await client.SendTextMessageAsync(
-                chatId: update.Message.Chat.Id,
-                text: botMessageText,
-                cancellationToken: cancellationToken);
-
-            return;
+            case { Type: MessageType.Photo }:
+                await HandlePhotoAsync(client, update.Message, cancellationToken);
+                break;
+            case { Type: MessageType.Text }:
+                await HandleTextAsync(client, update.Message, cancellationToken);
+                break;
         }
+    }
 
-        if (update.Message is not { Text: { } messageText } message)
-            return;
-        
+    private async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
+    {
         var chatId = message.Chat.Id;
         
-        log.LogInformation("Received a '{messageText}' message in chat {chatId}", messageText, chatId);
+        log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
         
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: "You said:\n" + messageText,
+            text: "You said:\n" + message.Text,
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task HandlePhotoAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
+    {
+        if (message.Photo == null)
+            return;
+        
+        var chatId = message.Chat.Id;
+
+        var fileId = message.Photo.Last().FileId;
+        var fileInfo = await client.GetFileAsync(fileId, cancellationToken: cancellationToken);
+
+        if (fileInfo.FilePath == null)
+            throw new ArgumentException("FilePath is null");
+            
+        var filePath = fileInfo.FilePath;
+            
+        log.LogInformation("Received a '{photoPath}' message in chat {chatId}", filePath, chatId);
+            
+        var encryptedContent = Array.Empty<byte>();
+
+        if (fileInfo.FileSize != null)
+        {
+            using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
+            await client.DownloadFileAsync(filePath, stream, cancellationToken);
+            encryptedContent = stream.ToArray();
+        }
+
+        var receiptApiResponse = await receiptApiClient.SendReceiptImage(encryptedContent);
+
+        var botMessageText =
+            $"Название магазина: {receiptApiResponse.Data.Json.ShopName}\n" +
+            $"Суммарная стоимость: {receiptApiResponse.Data.Json.TotalSum / 100.0} рублей\n\n" +
+            "Товары:\n" +
+            $"{Strings.Join(receiptApiResponse.Data.Json.Items.Select(x => $"{x.Name} — {x.TotalPrice / 100.0} рублей").ToArray(), "\n")}";
+
+        await client.SendTextMessageAsync(
+            chatId: chatId,
+            text: botMessageText,
             cancellationToken: cancellationToken);
     }
 
