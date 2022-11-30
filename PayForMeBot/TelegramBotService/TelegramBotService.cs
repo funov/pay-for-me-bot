@@ -127,22 +127,31 @@ public class TelegramBotService : ITelegramBotService
         await ShowProductSelectionButtons(client, chatId, encryptedContent, cancellationToken);
     }
     
-    private async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback, CancellationToken cancellationToken)
+    private async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback, 
+        CancellationToken cancellationToken)
     {
-        if (callback?.Data != null && Guid.TryParse(callback.Data, out var guid))
+        if (callback.Message != null && callback.Data != null && Guid.TryParse(callback.Data, out var guid))
         {
-            var inlineKeyboard = callback.Message!.ReplyMarkup!.InlineKeyboard.First().ToArray();
+            if (callback.Message.ReplyMarkup == null)
+                throw new InvalidOperationException();
+            
+            var inlineKeyboard = callback.Message.ReplyMarkup.InlineKeyboard.First().ToArray();
 
             var inlineKeyboardMarkup = GetInlineKeyboardMarkup(
                 guid, 
                 inlineKeyboard[0].Text,
                 inlineKeyboard[1].Text,
                 inlineKeyboard[2].Text == "🛒" ? "✅" : "🛒");
+            
+            if (inlineKeyboard[2].Text == "🛒")
+                log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
+            else
+                log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
 
             await client.EditMessageTextAsync(
-                callback.Message!.Chat.Id,
+                callback.Message.Chat.Id,
                 callback.Message.MessageId,
-                callback.Message!.Text,
+                callback.Message.Text ?? throw new InvalidOperationException(),
                 replyMarkup: inlineKeyboardMarkup,
                 cancellationToken: cancellationToken);
         }
@@ -161,7 +170,7 @@ public class TelegramBotService : ITelegramBotService
             var products = receiptApiResponse.Data?.Json?.Items;
 
             if (products != null)
-                await SendProductsButtons(client, chatId, products, cancellationToken);
+                await SendProductsMessages(client, chatId, products, cancellationToken);
             return;
         }
         catch (ReceiptNotFoundException)
@@ -179,7 +188,7 @@ public class TelegramBotService : ITelegramBotService
             cancellationToken: cancellationToken);
     }
 
-    private async Task SendProductsButtons(ITelegramBotClient client, long chatId, IEnumerable<Item> products, 
+    private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Item> products, 
         CancellationToken cancellationToken)
     {
         foreach (var product in products)
@@ -192,6 +201,8 @@ public class TelegramBotService : ITelegramBotService
                 $"{GetRublesPrice(product.TotalPrice)} р.",
                 $"{product.Count} шт.",
                 "🛒");
+            
+            log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
 
             await client.SendTextMessageAsync(
                 chatId, 
