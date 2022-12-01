@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.ReceiptApiClient.Exceptions;
@@ -10,6 +9,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using PayForMeBot.ReceiptApiClient.JsonObjects;
 
 namespace PayForMeBot.TelegramBotService;
 
@@ -19,7 +19,9 @@ public class TelegramBotService : ITelegramBotService
     private readonly IConfiguration config;
     private readonly IReceiptApiClient receiptApiClient;
 
-    public TelegramBotService(ILogger<ReceiptApiClient.ReceiptApiClient> log, IConfiguration config,
+    public TelegramBotService(
+        ILogger<ReceiptApiClient.ReceiptApiClient> log, 
+        IConfiguration config, 
         IReceiptApiClient receiptApiClient)
     {
         this.log = log;
@@ -39,11 +41,13 @@ public class TelegramBotService : ITelegramBotService
         var botClient = new TelegramBotClient(token);
 
         using var cts = new CancellationTokenSource();
-
+        
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = Array.Empty<UpdateType>()
+            AllowedUpdates = new[] {UpdateType.Message, UpdateType.CallbackQuery},
+            ThrowPendingUpdates = true
         };
+        
         botClient.StartReceiving(
             updateHandler: HandleUpdateAsync,
             pollingErrorHandler: HandlePollingErrorAsync,
@@ -64,14 +68,24 @@ public class TelegramBotService : ITelegramBotService
     {
         switch (update.Message)
         {
-            case {Type: MessageType.Photo}:
+            case { Type: MessageType.Text }:
+                await HandleTextAsync(client, update.Message, cancellationToken);
+                break;
+            
+            case { Type: MessageType.Photo }:
                 await HandlePhotoAsync(client, update.Message, cancellationToken);
                 break;
-            case {Type: MessageType.Text}:
-                await HandleTextAsync(client, update.Message, cancellationToken);
+        }
+
+        switch (update)
+        {
+            case { Type: UpdateType.CallbackQuery }:
+                if (update.CallbackQuery != null)
+                    await HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
                 break;
         }
     }
+    
 
     private async Task SendCustomKeyboard(ITelegramBotClient client, Message message,
         CancellationToken cancellationToken, KeyboardButton[] buttons, string responseText,
@@ -106,7 +120,7 @@ public class TelegramBotService : ITelegramBotService
 
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: "Ты написал:\n" + message.Text,
+            text: $"Что такое {message.Text}?",
             cancellationToken: cancellationToken);
     }
 
@@ -135,48 +149,127 @@ public class TelegramBotService : ITelegramBotService
             await client.DownloadFileAsync(filePath, stream, cancellationToken);
             encryptedContent = stream.ToArray();
         }
+        
+        await ShowProductSelectionButtons(client, chatId, encryptedContent, cancellationToken);
+    }
+    
+    private async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback, 
+        CancellationToken cancellationToken)
+    {
+        if (callback.Message != null && callback.Data != null && Guid.TryParse(callback.Data, out var guid))
+        {
+            if (callback.Message.ReplyMarkup == null)
+                throw new InvalidOperationException();
+            
+            var inlineKeyboard = callback.Message.ReplyMarkup.InlineKeyboard.First().ToArray();
 
-        var botMessageText = await GetBotMessageText(encryptedContent);
+            var inlineKeyboardMarkup = GetInlineKeyboardMarkup(
+                guid, 
+                inlineKeyboard[0].Text,
+                inlineKeyboard[1].Text,
+                inlineKeyboard[2].Text == "🛒" ? "✅" : "🛒");
+            
+            if (inlineKeyboard[2].Text == "🛒")
+                log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
+            else
+                log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
 
-        await client.SendTextMessageAsync(
-            chatId: chatId,
-            text: botMessageText,
-            cancellationToken: cancellationToken);
+            await client.EditMessageTextAsync(
+                callback.Message.Chat.Id,
+                callback.Message.MessageId,
+                callback.Message.Text ?? throw new InvalidOperationException(),
+                replyMarkup: inlineKeyboardMarkup,
+                cancellationToken: cancellationToken);
+        }
+        else
+            await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
-    private async Task<string> GetBotMessageText(byte[] encryptedContent)
+    private async Task ShowProductSelectionButtons(ITelegramBotClient client, long chatId, byte[] encryptedContent, 
+        CancellationToken cancellationToken)
     {
-        string botMessageText;
-
+        string problemText;
+        
         try
         {
             var receiptApiResponse = await receiptApiClient.GetReceiptApiResponse(encryptedContent);
+            var products = receiptApiResponse.Data?.Json?.Items;
 
-            botMessageText =
-                $"Название магазина: {receiptApiResponse.Data.Json.ShopName}\n" +
-                $"Суммарная стоимость: {receiptApiResponse.Data.Json.TotalSum / 100.0} рублей\n\n" +
-                "Товары:\n" +
-                $"{Strings.Join(receiptApiResponse.Data.Json.Items.Select(x => $"{x.Name} — {x.TotalPrice / 100.0} рублей").ToArray(), "\n")}";
+            if (products != null)
+                await SendProductsMessages(client, chatId, products, cancellationToken);
+            return;
         }
         catch (ReceiptNotFoundException)
         {
-            botMessageText = "Не удалось обработать чек, возможно на фото нет чека";
+            problemText = "Не удалось обработать чек, возможно на фото нет чека";
         }
         catch (JsonException)
         {
-            botMessageText = "Обработка изображений временно недоступна";
+            problemText = "Обработка изображений временно недоступна";
         }
-
-        return botMessageText;
+        
+        await client.SendTextMessageAsync(
+            chatId: chatId,
+            text: problemText,
+            cancellationToken: cancellationToken);
     }
 
-    private Task HandlePollingErrorAsync(ITelegramBotClient client, Exception exception,
+    private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Item> products, 
+        CancellationToken cancellationToken)
+    {
+        foreach (var product in products)
+        {
+            var text = $"{product.Name}";
+            var guid = Guid.NewGuid();
+                
+            var inlineKeyboardMarkup = GetInlineKeyboardMarkup(
+                guid, 
+                $"{GetRublesPrice(product.TotalPrice)} р.",
+                $"{product.Count} шт.",
+                "🛒");
+            
+            log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
+
+            await client.SendTextMessageAsync(
+                chatId, 
+                text, 
+                replyMarkup: inlineKeyboardMarkup, 
+                disableNotification: true,
+                cancellationToken: cancellationToken);
+        }
+    }
+
+    private static InlineKeyboardMarkup GetInlineKeyboardMarkup(Guid guid, string priceText, string countText, 
+        string buyButtonText)
+    {
+        var buttons = new List<List<InlineKeyboardButton>>
+        {
+            new()
+            {
+                InlineKeyboardButton.WithCallbackData(priceText),
+                InlineKeyboardButton.WithCallbackData(countText),
+                InlineKeyboardButton.WithCallbackData(buyButtonText, guid.ToString()),
+            }
+        };
+
+        return new InlineKeyboardMarkup(buttons);
+    }
+
+    private static double GetRublesPrice(int kopecksPrice)
+    {
+        var kopecks = kopecksPrice % 100;
+        var rubles = kopecksPrice / 100;
+
+        return rubles + kopecks / 100.0;
+    }
+    
+    private Task HandlePollingErrorAsync(ITelegramBotClient client, Exception exception, 
         CancellationToken cancellationToken)
     {
         var errorMessage = exception switch
         {
             ApiRequestException apiRequestException
-                => $"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}",
+                => $"Telegram API Error: [{apiRequestException.ErrorCode}] {apiRequestException.Message}",
             _ => exception.ToString()
         };
 
