@@ -33,9 +33,9 @@ public class ReceiptApiClient : IReceiptApiClient
         var formData = new MultipartFormDataContent();
         formData.Add(new ByteArrayContent(receiptImageBytes), "qrfile", "filename");
         formData.Add(new StringContent(token), "token");
-        
+
         log.LogInformation("Send request to {url}", url);
-        
+
         var response = await httpClient.PostAsync(url, formData);
         var stringResponse = await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync();
 
@@ -43,9 +43,9 @@ public class ReceiptApiClient : IReceiptApiClient
 
         var code = (jObject["code"] ?? throw new JsonException("Receipt api send unexpected json")).Value<int>();
 
-        if (code != 1) 
+        if (code != 1)
             throw new ReceiptNotFoundException(code);
-        
+
         var receiptApiResponse = jObject.ToObject<ReceiptApiResponse>();
 
         return receiptApiResponse ?? throw new JsonException("Process json failed");

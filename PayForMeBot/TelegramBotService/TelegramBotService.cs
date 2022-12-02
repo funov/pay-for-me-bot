@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.ReceiptApiClient.Exceptions;
@@ -9,6 +7,8 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using PayForMeBot.ReceiptApiClient.JsonObjects;
 
 namespace PayForMeBot.TelegramBotService;
@@ -20,8 +20,8 @@ public class TelegramBotService : ITelegramBotService
     private readonly IReceiptApiClient receiptApiClient;
 
     public TelegramBotService(
-        ILogger<ReceiptApiClient.ReceiptApiClient> log, 
-        IConfiguration config, 
+        ILogger<ReceiptApiClient.ReceiptApiClient> log,
+        IConfiguration config,
         IReceiptApiClient receiptApiClient)
     {
         this.log = log;
@@ -41,13 +41,13 @@ public class TelegramBotService : ITelegramBotService
         var botClient = new TelegramBotClient(token);
 
         using var cts = new CancellationTokenSource();
-        
+
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = new[] {UpdateType.Message, UpdateType.CallbackQuery},
+            AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery },
             ThrowPendingUpdates = true
         };
-        
+
         botClient.StartReceiving(
             updateHandler: HandleUpdateAsync,
             pollingErrorHandler: HandlePollingErrorAsync,
@@ -71,7 +71,7 @@ public class TelegramBotService : ITelegramBotService
             case { Type: MessageType.Text }:
                 await HandleTextAsync(client, update.Message, cancellationToken);
                 break;
-            
+
             case { Type: MessageType.Photo }:
                 await HandlePhotoAsync(client, update.Message, cancellationToken);
                 break;
@@ -85,14 +85,16 @@ public class TelegramBotService : ITelegramBotService
                 break;
         }
     }
-    
 
     private async Task SendCustomKeyboard(ITelegramBotClient client, Message message,
         CancellationToken cancellationToken, KeyboardButton[] buttons, string responseText,
         List<string> conditionCommands)
     {
-        if (conditionCommands == null) throw new ArgumentNullException(nameof(conditionCommands));
+        if (conditionCommands == null) 
+            throw new ArgumentNullException(nameof(conditionCommands));
+        
         var chatId = message.Chat.Id;
+        
         var replyKeyboardMarkup = new ReplyKeyboardMarkup(new[]
         {
             buttons,
@@ -101,7 +103,9 @@ public class TelegramBotService : ITelegramBotService
             ResizeKeyboard = true,
             OneTimeKeyboard = true
         };
+        
         log.LogInformation("1");
+        
         if (conditionCommands.Contains(message.Text!))
         {
             await client.SendTextMessageAsync(
@@ -145,30 +149,30 @@ public class TelegramBotService : ITelegramBotService
 
         if (fileInfo.FileSize != null)
         {
-            using var stream = new MemoryStream((int) fileInfo.FileSize.Value);
+            using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
             await client.DownloadFileAsync(filePath, stream, cancellationToken);
             encryptedContent = stream.ToArray();
         }
-        
+
         await ShowProductSelectionButtons(client, chatId, encryptedContent, cancellationToken);
     }
-    
-    private async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback, 
+
+    private async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback,
         CancellationToken cancellationToken)
     {
         if (callback.Message != null && callback.Data != null && Guid.TryParse(callback.Data, out var guid))
         {
             if (callback.Message.ReplyMarkup == null)
                 throw new InvalidOperationException();
-            
+
             var inlineKeyboard = callback.Message.ReplyMarkup.InlineKeyboard.First().ToArray();
 
             var inlineKeyboardMarkup = GetInlineKeyboardMarkup(
-                guid, 
+                guid,
                 inlineKeyboard[0].Text,
                 inlineKeyboard[1].Text,
                 inlineKeyboard[2].Text == "🛒" ? "✅" : "🛒");
-            
+
             if (inlineKeyboard[2].Text == "🛒")
                 log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
             else
@@ -185,11 +189,11 @@ public class TelegramBotService : ITelegramBotService
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
-    private async Task ShowProductSelectionButtons(ITelegramBotClient client, long chatId, byte[] encryptedContent, 
+    private async Task ShowProductSelectionButtons(ITelegramBotClient client, long chatId, byte[] encryptedContent,
         CancellationToken cancellationToken)
     {
         string problemText;
-        
+
         try
         {
             var receiptApiResponse = await receiptApiClient.GetReceiptApiResponse(encryptedContent);
@@ -207,39 +211,39 @@ public class TelegramBotService : ITelegramBotService
         {
             problemText = "Обработка изображений временно недоступна";
         }
-        
+
         await client.SendTextMessageAsync(
             chatId: chatId,
             text: problemText,
             cancellationToken: cancellationToken);
     }
 
-    private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Item> products, 
+    private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Item> products,
         CancellationToken cancellationToken)
     {
         foreach (var product in products)
         {
             var text = $"{product.Name}";
             var guid = Guid.NewGuid();
-                
+
             var inlineKeyboardMarkup = GetInlineKeyboardMarkup(
-                guid, 
+                guid,
                 $"{GetRublesPrice(product.TotalPrice)} р.",
                 $"{product.Count} шт.",
                 "🛒");
-            
+
             log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
 
             await client.SendTextMessageAsync(
-                chatId, 
-                text, 
-                replyMarkup: inlineKeyboardMarkup, 
+                chatId,
+                text,
+                replyMarkup: inlineKeyboardMarkup,
                 disableNotification: true,
                 cancellationToken: cancellationToken);
         }
     }
 
-    private static InlineKeyboardMarkup GetInlineKeyboardMarkup(Guid guid, string priceText, string countText, 
+    private static InlineKeyboardMarkup GetInlineKeyboardMarkup(Guid guid, string priceText, string countText,
         string buyButtonText)
     {
         var buttons = new List<List<InlineKeyboardButton>>
@@ -262,8 +266,8 @@ public class TelegramBotService : ITelegramBotService
 
         return rubles + kopecks / 100.0;
     }
-    
-    private Task HandlePollingErrorAsync(ITelegramBotClient client, Exception exception, 
+
+    private Task HandlePollingErrorAsync(ITelegramBotClient client, Exception exception,
         CancellationToken cancellationToken)
     {
         var errorMessage = exception switch

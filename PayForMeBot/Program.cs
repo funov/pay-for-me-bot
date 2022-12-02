@@ -19,7 +19,7 @@ public static class Program
             .Enrich.FromLogContext()
             .WriteTo.Console()
             .CreateLogger();
-        
+
         Log.Logger.Information("Application Starting");
 
         var host = Host.CreateDefaultBuilder()
@@ -30,11 +30,11 @@ public static class Program
             })
             .UseSerilog()
             .Build();
-        
+
         var service = ActivatorUtilities.CreateInstance<TelegramBotService.TelegramBotService>(host.Services);
         await service.Run();
     }
-    
+
     private static void BuildConfig(IConfigurationBuilder builder)
     {
         builder.SetBasePath(Directory.GetCurrentDirectory())
