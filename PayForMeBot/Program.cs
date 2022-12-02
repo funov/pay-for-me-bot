@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.TelegramBotService;
+using PayForMeBot.TelegramBotService.MessageHandler;
 using Serilog;
 
 namespace PayForMeBot;
@@ -25,8 +26,9 @@ public static class Program
         var host = Host.CreateDefaultBuilder()
             .ConfigureServices((context, services) =>
             {
-                services.AddTransient<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient>();
-                services.AddTransient<ITelegramBotService, TelegramBotService.TelegramBotService>();
+                services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient>();
+                services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
+                services.AddSingleton<IMessageHandler, MessageHandler>();
                 services.AddAutoMapper(typeof(Program).Assembly);
             })
             .UseSerilog()
