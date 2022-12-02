@@ -27,6 +27,7 @@ public static class Program
             {
                 services.AddTransient<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient>();
                 services.AddTransient<ITelegramBotService, TelegramBotService.TelegramBotService>();
+                services.AddAutoMapper(typeof(Program).Assembly);
             })
             .UseSerilog()
             .Build();

@@ -1,9 +1,11 @@
 using System.Text.Json;
+using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.JsonObjects;
+using PayForMeBot.ReceiptApiClient.Models;
 
 namespace PayForMeBot.ReceiptApiClient;
 
@@ -11,16 +13,18 @@ public class ReceiptApiClient : IReceiptApiClient
 {
     private readonly ILogger<ReceiptApiClient> log;
     private readonly IConfiguration config;
+    private readonly IMapper mapper;
     private readonly HttpClient httpClient;
 
-    public ReceiptApiClient(ILogger<ReceiptApiClient> log, IConfiguration config)
+    public ReceiptApiClient(ILogger<ReceiptApiClient> log, IConfiguration config, IMapper mapper)
     {
         this.log = log;
         this.config = config;
+        this.mapper = mapper;
         httpClient = new HttpClient();
     }
 
-    public async Task<ReceiptApiResponse> GetReceiptApiResponse(byte[] receiptImageBytes)
+    public async Task<Receipt> GetReceipt(byte[] receiptImageBytes)
     {
         var url = config.GetValue<string>("RECEIPT_API_URL");
         var token = config.GetValue<string>("RECEIPT_API_TOKEN");
@@ -46,8 +50,9 @@ public class ReceiptApiClient : IReceiptApiClient
         if (code != 1)
             throw new ReceiptNotFoundException(code);
 
-        var receiptApiResponse = jObject.ToObject<ReceiptApiResponse>();
+        var receiptData = jObject.ToObject<ReceiptApiResponse>()?.Data?.Json
+                          ?? throw new JsonException("Process json failed");
 
-        return receiptApiResponse ?? throw new JsonException("Process json failed");
+        return mapper.Map<Receipt>(receiptData);
     }
 }

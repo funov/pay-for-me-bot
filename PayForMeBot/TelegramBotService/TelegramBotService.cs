@@ -9,7 +9,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using PayForMeBot.ReceiptApiClient.JsonObjects;
+using PayForMeBot.ReceiptApiClient.Models;
 
 namespace PayForMeBot.TelegramBotService;
 
@@ -90,11 +90,11 @@ public class TelegramBotService : ITelegramBotService
         CancellationToken cancellationToken, KeyboardButton[] buttons, string responseText,
         List<string> conditionCommands)
     {
-        if (conditionCommands == null) 
+        if (conditionCommands == null)
             throw new ArgumentNullException(nameof(conditionCommands));
-        
+
         var chatId = message.Chat.Id;
-        
+
         var replyKeyboardMarkup = new ReplyKeyboardMarkup(new[]
         {
             buttons,
@@ -103,9 +103,9 @@ public class TelegramBotService : ITelegramBotService
             ResizeKeyboard = true,
             OneTimeKeyboard = true
         };
-        
+
         log.LogInformation("1");
-        
+
         if (conditionCommands.Contains(message.Text!))
         {
             await client.SendTextMessageAsync(
@@ -192,16 +192,18 @@ public class TelegramBotService : ITelegramBotService
     private async Task ShowProductSelectionButtons(ITelegramBotClient client, long chatId, byte[] encryptedContent,
         CancellationToken cancellationToken)
     {
-        string problemText;
+        var problemText = "Не удалось обработать чек, попробуйте снова";
 
         try
         {
-            var receiptApiResponse = await receiptApiClient.GetReceiptApiResponse(encryptedContent);
-            var products = receiptApiResponse.Data?.Json?.Items;
+            var receipt = await receiptApiClient.GetReceipt(encryptedContent);
+            var products = receipt.Products;
 
             if (products != null)
+            {
                 await SendProductsMessages(client, chatId, products, cancellationToken);
-            return;
+                return;
+            }
         }
         catch (ReceiptNotFoundException)
         {
@@ -212,13 +214,15 @@ public class TelegramBotService : ITelegramBotService
             problemText = "Обработка изображений временно недоступна";
         }
 
+        log.LogInformation("Received a '{problemText}' message in chat {chatId}", problemText, chatId);
+
         await client.SendTextMessageAsync(
             chatId: chatId,
             text: problemText,
             cancellationToken: cancellationToken);
     }
 
-    private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Item> products,
+    private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Product> products,
         CancellationToken cancellationToken)
     {
         foreach (var product in products)

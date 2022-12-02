@@ -1,8 +1,8 @@
-using PayForMeBot.ReceiptApiClient.JsonObjects;
+using PayForMeBot.ReceiptApiClient.Models;
 
 namespace PayForMeBot.ReceiptApiClient;
 
 public interface IReceiptApiClient
 {
-    public Task<ReceiptApiResponse> GetReceiptApiResponse(byte[] receiptImageBytes);
+    public Task<Receipt> GetReceipt(byte[] receiptImageBytes);
 }
