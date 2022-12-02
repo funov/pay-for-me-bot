@@ -282,6 +282,7 @@ public class TelegramBotService : ITelegramBotService
         };
 
         log.LogError(errorMessage);
-        return Task.CompletedTask;
+        
+        return Run();
     }
 }
