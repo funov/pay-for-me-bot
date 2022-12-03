@@ -19,7 +19,7 @@ public class KeyboardMarkup : IKeyboardMarkup
 
         return new InlineKeyboardMarkup(buttons);
     }
-    
+
     public ReplyKeyboardMarkup GetReplyKeyboardMarkup(IEnumerable<string> buttonLabels)
     {
         var replyKeyboardMarkup = new ReplyKeyboardMarkup(new[]
@@ -28,7 +28,6 @@ public class KeyboardMarkup : IKeyboardMarkup
         })
         {
             ResizeKeyboard = true,
-            OneTimeKeyboard = true
         };
 
         return replyKeyboardMarkup;

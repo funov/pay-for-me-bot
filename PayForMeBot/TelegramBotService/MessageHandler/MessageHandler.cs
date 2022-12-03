@@ -6,13 +6,14 @@ using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.Models;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler;
 
 public class MessageHandler : IMessageHandler
 {
-    private static HashSet<string> teamSelectionFlags = new() { "/start", "Завершить" };
-    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+    private static HashSet<string> teamSelectionFlags = new() {"/start", "Завершить"};
+    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
@@ -32,24 +33,6 @@ public class MessageHandler : IMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
-        switch (message.Text!)
-        {
-            // TODO Брать их из массива
-            
-            case "Создать команду":
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Создана!",
-                    cancellationToken: cancellationToken);
-                break;
-            case "Присоединиться к команде":
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Присоединяюсь!",
-                    cancellationToken: cancellationToken);
-                break;
-        }
-
         if (teamSelectionFlags.Contains(message.Text!))
         {
             await client.SendTextMessageAsync(
@@ -57,6 +40,29 @@ public class MessageHandler : IMessageHandler
                 text: "Test",
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                 cancellationToken: cancellationToken);
+            return;
+        }
+
+        switch (message.Text!)
+        {
+            // TODO Брать их из массива
+
+            case "Создать команду":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Создана",
+                    replyMarkup: new ReplyKeyboardRemove(),
+                    cancellationToken: cancellationToken
+                );
+                break;
+            case "Присоединиться к команде":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Присоединяюсь!",
+                    replyMarkup: new ReplyKeyboardRemove(),
+                    cancellationToken: cancellationToken
+                );
+                break;
         }
     }
 
@@ -81,7 +87,7 @@ public class MessageHandler : IMessageHandler
 
         if (fileInfo.FileSize != null)
         {
-            using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
+            using var stream = new MemoryStream((int) fileInfo.FileSize.Value);
             await client.DownloadFileAsync(filePath, stream, cancellationToken);
             encryptedContent = stream.ToArray();
         }
