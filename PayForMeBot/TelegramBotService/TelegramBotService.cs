@@ -3,7 +3,6 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PayForMeBot.TelegramBotService.MessageHandler;
@@ -78,36 +77,6 @@ public class TelegramBotService : ITelegramBotService
                 if (update.CallbackQuery != null)
                     await messageHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
                 break;
-        }
-    }
-
-    private async Task SendCustomKeyboard(ITelegramBotClient client, Message message,
-        CancellationToken cancellationToken, KeyboardButton[] buttons, string responseText,
-        List<string> conditionCommands)
-    {
-        if (conditionCommands == null)
-            throw new ArgumentNullException(nameof(conditionCommands));
-
-        var chatId = message.Chat.Id;
-
-        var replyKeyboardMarkup = new ReplyKeyboardMarkup(new[]
-        {
-            buttons,
-        })
-        {
-            ResizeKeyboard = true,
-            OneTimeKeyboard = true
-        };
-
-        log.LogInformation("1");
-
-        if (conditionCommands.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: responseText,
-                replyMarkup: replyKeyboardMarkup,
-                cancellationToken: cancellationToken);
         }
     }
 

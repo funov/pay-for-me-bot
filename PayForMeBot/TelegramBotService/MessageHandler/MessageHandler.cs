@@ -1,23 +1,29 @@
+using Telegram.Bot;
+using Telegram.Bot.Types;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.Models;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
+using PayForMeBot.TelegramBotService.KeyboardMarkup;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler;
 
 public class MessageHandler : IMessageHandler
 {
+    private static HashSet<string> teamSelectionFlags = new() { "/start", "Завершить" };
+    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
+    private readonly IKeyboardMarkup keyboardMarkup;
 
-    public MessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient)
+    public MessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient,
+        IKeyboardMarkup keyboardMarkup)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
+        this.keyboardMarkup = keyboardMarkup;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -26,10 +32,14 @@ public class MessageHandler : IMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
-        await client.SendTextMessageAsync(
-            chatId: chatId,
-            text: $"Что такое {message.Text}?",
-            cancellationToken: cancellationToken);
+        if (teamSelectionFlags.Contains(message.Text!))
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Test",
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
+                cancellationToken: cancellationToken);
+        }
     }
 
     public async Task HandlePhotoAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -102,7 +112,7 @@ public class MessageHandler : IMessageHandler
             var text = $"{product.Name}";
             var guid = Guid.NewGuid();
 
-            var inlineKeyboardMarkup = GetInlineKeyboardMarkup(
+            var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
                 guid,
                 $"{product.TotalPrice} р.",
                 $"{product.Count} шт.",
@@ -129,7 +139,7 @@ public class MessageHandler : IMessageHandler
 
             var inlineKeyboard = callback.Message.ReplyMarkup.InlineKeyboard.First().ToArray();
 
-            var inlineKeyboardMarkup = GetInlineKeyboardMarkup(
+            var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
                 guid,
                 inlineKeyboard[0].Text,
                 inlineKeyboard[1].Text,
@@ -149,21 +159,5 @@ public class MessageHandler : IMessageHandler
         }
         else
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
-    }
-
-    private static InlineKeyboardMarkup GetInlineKeyboardMarkup(Guid guid, string priceText, string countText,
-        string buyButtonText)
-    {
-        var buttons = new List<List<InlineKeyboardButton>>
-        {
-            new()
-            {
-                InlineKeyboardButton.WithCallbackData(priceText),
-                InlineKeyboardButton.WithCallbackData(countText),
-                InlineKeyboardButton.WithCallbackData(buyButtonText, guid.ToString()),
-            }
-        };
-
-        return new InlineKeyboardMarkup(buttons);
     }
 }

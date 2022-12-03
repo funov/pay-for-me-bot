@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.TelegramBotService;
+using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using PayForMeBot.TelegramBotService.MessageHandler;
 using Serilog;
 
@@ -29,6 +30,7 @@ public static class Program
                 services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient>();
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IMessageHandler, MessageHandler>();
+                services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
                 services.AddAutoMapper(typeof(Program).Assembly);
             })
             .UseSerilog()
