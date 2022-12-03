@@ -32,6 +32,24 @@ public class MessageHandler : IMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
+        switch (message.Text!)
+        {
+            // TODO Брать их из массива
+            
+            case "Создать команду":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Создана!",
+                    cancellationToken: cancellationToken);
+                break;
+            case "Присоединиться к команде":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Присоединяюсь!",
+                    cancellationToken: cancellationToken);
+                break;
+        }
+
         if (teamSelectionFlags.Contains(message.Text!))
         {
             await client.SendTextMessageAsync(
