@@ -1,4 +1,3 @@
-using PayForMeBot.ReceiptApiClient.Models;
 using PayForMeBot.SqliteDriver.Models;
 using Product = PayForMeBot.ReceiptApiClient.Models.Product;
 
