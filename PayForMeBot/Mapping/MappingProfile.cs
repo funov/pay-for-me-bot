@@ -25,6 +25,6 @@ public class MappingProfile : Profile
         var kopecks = kopecksPrice % 100;
         var rubles = kopecksPrice / 100;
 
-        return rubles + kopecks / 100.0;
+        return Math.Round(rubles + kopecks / 100.0, 2);
     }
 }

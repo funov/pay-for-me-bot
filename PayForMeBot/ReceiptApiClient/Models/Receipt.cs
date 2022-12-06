@@ -6,5 +6,5 @@ public class Receipt
 
     public string? ShopName { get; set; }
 
-    public int TotalPriceSum { get; set; }
+    public double TotalPriceSum { get; set; }
 }
