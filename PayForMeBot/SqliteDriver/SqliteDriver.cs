@@ -12,7 +12,7 @@ public class SqliteDriver : ISqliteDriver
         db = new DbContext();
     }
     
-    public void AddUser(string telegramId, Guid teamId, string spbLink)
+    public void AddUser(string telegramId, Guid teamId, string? spbLink)
     {
         var user = new UserTable { telegramId = telegramId, teamId = teamId, sbpLink = spbLink};
             
@@ -20,7 +20,7 @@ public class SqliteDriver : ISqliteDriver
         db.SaveChanges();
     }
 
-    public void AddSbpLink(string telegramId, Guid teamId, string sbpLink)
+    public void AddSbpLink(string telegramId, Guid teamId, string? sbpLink)
     {
         var user = db.Users.FirstOrDefault(s =>
             s.telegramId.Equals(telegramId) && s.teamId.Equals(teamId));

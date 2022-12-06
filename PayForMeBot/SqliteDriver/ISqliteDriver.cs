@@ -6,8 +6,8 @@ namespace PayForMeBot.SqliteDriver;
 
 public interface ISqliteDriver
 {
-    void AddUser(string telegramId, Guid teamId, string spbLink="");
-    void AddSbpLink(string telegramId, Guid teamId, string sbpLink);
+    void AddUser(string telegramId, Guid teamId, string? spbLink=null);
+    void AddSbpLink(string telegramId, Guid teamId, string? sbpLink);
     void AddProduct(Product product, Guid receiptId, string telegramId, Guid teamId); 
     void AddProducts(Product[] products, Guid receiptId, string telegramId, Guid teamId);
     void AddUserProductBinding(string telegramId, Guid teamId, Guid productId);
