@@ -5,6 +5,8 @@ using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.TelegramBotService;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using PayForMeBot.TelegramBotService.MessageHandler;
+using Microsoft.EntityFrameworkCore;
+using PayForMeBot.SqliteDriver;
 using Serilog;
 
 namespace PayForMeBot;
