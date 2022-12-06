@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.Models;
+using PayForMeBot.SqliteDriver;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -18,13 +19,15 @@ public class MessageHandler : IMessageHandler
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
+    private readonly ISqliteDriver sqliteDriver;
 
     public MessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient,
-        IKeyboardMarkup keyboardMarkup)
+        IKeyboardMarkup keyboardMarkup, ISqliteDriver sqliteDriver)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
         this.keyboardMarkup = keyboardMarkup;
+        this.sqliteDriver = sqliteDriver;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)

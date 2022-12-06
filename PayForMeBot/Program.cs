@@ -5,7 +5,6 @@ using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.TelegramBotService;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using PayForMeBot.TelegramBotService.MessageHandler;
-using Microsoft.EntityFrameworkCore;
 using PayForMeBot.SqliteDriver;
 using Serilog;
 
@@ -33,6 +32,7 @@ public static class Program
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IMessageHandler, MessageHandler>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
+                services.AddSingleton<ISqliteDriver, SqliteDriver.SqliteDriver>();
                 services.AddAutoMapper(typeof(Program).Assembly);
             })
             .UseSerilog()
