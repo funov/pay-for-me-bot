@@ -8,7 +8,10 @@ public interface ISqliteDriver
 {
     void AddUser(string userTgId, Guid teamId, string? spbLink=null);
     void AddSbpLink(string userTgId, Guid teamId, string? sbpLink);
-    void AddProduct(Product product, Guid receiptId, string telegramId, Guid teamId); 
-    void AddProducts(Product[] products, Guid receiptId, string telegramId, Guid teamId);
+    void AddProduct(Guid id, Product productModel, Guid receiptId, string buyerTelegramId, Guid teamId);
+
     void AddUserProductBinding(string userTelegramId, Guid teamId, Guid productId);
+    string GetSbpLinkByUserTgId(string userTgId);
+    double GetUserTotalPriceByTgId(string userTgId, Guid teamId);
+    void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, string buyerTelegramId, Guid teamId);
 }

@@ -6,9 +6,11 @@ public class ProductTable
 {
     [Key]
     public Guid Id { get; set; }
-    public  string? name { get; set; }
-    public double totalPrice { get; set; }
-    public Guid teamId { get; set; }
-    public Guid receiptId { get; set; }
-    public string buyerTelegramId  { get; set; }
+    public  string? Name { get; set; }
+    public int Count { get; set; }
+    public double Price { get; set; }
+    public double TotalPrice { get; set; }
+    public Guid TeamId { get; set; }
+    public Guid ReceiptId { get; set; }
+    public string? BuyerTelegramId  { get; set; }
 }
