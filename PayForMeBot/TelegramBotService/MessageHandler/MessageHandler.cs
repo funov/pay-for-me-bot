@@ -51,14 +51,19 @@ public class MessageHandler : IMessageHandler
             // TODO Брать их из массива
 
             case "Создать команду":
+                sqliteDriver.AddUser(message.Chat.Username!, chatId);
+                    
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Создана",
                     replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken
                 );
+
                 break;
             case "Присоединиться к команде":
+                sqliteDriver.AddUser(message.Chat.Username!, chatId);
+                
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Присоединяюсь!",
@@ -95,11 +100,11 @@ public class MessageHandler : IMessageHandler
             encryptedContent = stream.ToArray();
         }
 
-        await ShowProductSelectionButtons(client, chatId, encryptedContent, cancellationToken);
+        await ShowProductSelectionButtons(client, chatId, encryptedContent, cancellationToken, message);
     }
 
     private async Task ShowProductSelectionButtons(ITelegramBotClient client, long chatId, byte[] encryptedContent,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Message message)
     {
         var problemText = "Не удалось обработать чек, попробуйте снова";
 
@@ -110,7 +115,7 @@ public class MessageHandler : IMessageHandler
 
             if (products != null)
             {
-                await SendProductsMessages(client, chatId, products, cancellationToken);
+                await SendProductsMessages(client, chatId, products, cancellationToken, message);
                 return;
             }
         }
@@ -132,18 +137,21 @@ public class MessageHandler : IMessageHandler
     }
 
     private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Product> products,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Message message)
     {
         foreach (var product in products)
         {
             var text = $"{product.Name}";
             var guid = Guid.NewGuid();
-
+            var guidReceipt = Guid.NewGuid();
+            
             var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
                 guid,
                 $"{product.TotalPrice} р.",
                 $"{product.Count} шт.",
                 "🛒");
+            
+            sqliteDriver.AddProduct(guid, product, guidReceipt, message.Chat.Username!, message.Chat.Id);
 
             log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
 
@@ -157,7 +165,7 @@ public class MessageHandler : IMessageHandler
     }
 
     public async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,  Message message)
     {
         if (callback.Message != null && callback.Data != null && Guid.TryParse(callback.Data, out var guid))
         {
@@ -173,9 +181,17 @@ public class MessageHandler : IMessageHandler
                 inlineKeyboard[2].Text == "🛒" ? "✅" : "🛒");
 
             if (inlineKeyboard[2].Text == "🛒")
+            {
                 log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
+                var teamId = sqliteDriver.GetTeamIdByUserTgId(callback.From.Username!);
+                sqliteDriver.AddUserProductBinding(callback.From.Username,teamId, guid);
+            }
             else
+            {
                 log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
+                var teamId = sqliteDriver.GetTeamIdByUserTgId(callback.From.Username!);
+                sqliteDriver.DeleteUserProductBinding(callback.From.Username,teamId, guid);
+            }
 
             await client.EditMessageTextAsync(
                 callback.Message.Chat.Id,

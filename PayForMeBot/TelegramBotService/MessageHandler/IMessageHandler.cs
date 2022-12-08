@@ -7,5 +7,6 @@ public interface IMessageHandler
 {
     Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken);
     Task HandlePhotoAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken);
-    Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback, CancellationToken cancellationToken);
+    Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback,
+        CancellationToken cancellationToken, Message message);
 }

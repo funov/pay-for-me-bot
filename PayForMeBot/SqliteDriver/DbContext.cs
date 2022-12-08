@@ -17,6 +17,6 @@ public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext
  
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite("Filename=UsersProducts.db");
+        optionsBuilder.UseSqlite(@"Data Source=UsersProducts.db");
     }
 }

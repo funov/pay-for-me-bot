@@ -10,7 +10,7 @@ public class ProductTable
     public int Count { get; set; }
     public double Price { get; set; }
     public double TotalPrice { get; set; }
-    public Guid TeamId { get; set; }
+    public long TeamId { get; set; }
     public Guid ReceiptId { get; set; }
     public string? BuyerTelegramId  { get; set; }
 }
