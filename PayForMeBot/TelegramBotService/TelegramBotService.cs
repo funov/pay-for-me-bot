@@ -5,6 +5,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using PayForMeBot.TelegramBotService.Exceptions;
 using PayForMeBot.TelegramBotService.MessageHandler;
 
 namespace PayForMeBot.TelegramBotService;
@@ -28,9 +29,7 @@ public class TelegramBotService : ITelegramBotService
         var token = config.GetValue<string>("TELEGRAM_BOT_TOKEN");
 
         if (token == null)
-        {
-            throw new ArgumentException("Token doesn't exists in appsettings.json");
-        }
+            throw new NullTokenException("Bad configuration secrets.json");
 
         var botClient = new TelegramBotClient(token);
 

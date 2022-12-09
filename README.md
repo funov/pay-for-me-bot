@@ -1,6 +1,6 @@
 # PayForMeBot
 
-Пример `secrets.json`
+Пример `appsettings.Production.json`
 
 ```
 {

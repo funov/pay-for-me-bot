@@ -22,7 +22,7 @@ public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (connectionSting == null)
-            throw new NullConnectionStringException("secrets.json bad configuration");
+            throw new NullConnectionStringException("Bad configuration secrets.json");
 
         optionsBuilder.UseSqlite(connectionSting);
     }

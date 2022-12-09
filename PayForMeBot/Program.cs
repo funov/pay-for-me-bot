@@ -46,10 +46,7 @@ public static class Program
     {
         builder.SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables();
-
-        builder.SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("secrets.json", optional: false, reloadOnChange: true)
+            .AddJsonFile("appsettings.Production.json", optional: false, reloadOnChange: true)
             .AddEnvironmentVariables();
     }
 }
