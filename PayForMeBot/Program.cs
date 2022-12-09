@@ -32,7 +32,7 @@ public static class Program
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IMessageHandler, MessageHandler>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
-                services.AddSingleton<IDbDriver>(_ => new DbDriver("Data Source=UsersProducts.db"));
+                services.AddSingleton<IDbDriver, DbDriver>();
                 services.AddAutoMapper(typeof(Program).Assembly);
             })
             .UseSerilog()
@@ -46,6 +46,10 @@ public static class Program
     {
         builder.SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddEnvironmentVariables();
+
+        builder.SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("secrets.json", optional: false, reloadOnChange: true)
             .AddEnvironmentVariables();
     }
 }

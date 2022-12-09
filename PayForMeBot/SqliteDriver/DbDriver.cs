@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using PayForMeBot.SqliteDriver.Models;
 using Product = PayForMeBot.ReceiptApiClient.Models.Product;
 
@@ -7,7 +8,7 @@ public class DbDriver : IDbDriver
 {
     private readonly DbContext db;
 
-    public DbDriver(string connectionSting) => db = new DbContext(connectionSting);
+    public DbDriver(IConfiguration config) => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
     public void AddUser(string userTgId, long teamId, string? spbLink)
     {

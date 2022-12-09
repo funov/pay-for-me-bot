@@ -242,4 +242,5 @@ _Pvt_Extensions
 **/node_modules
 
 *.DS_Store
-*json
+
+secrets.json
