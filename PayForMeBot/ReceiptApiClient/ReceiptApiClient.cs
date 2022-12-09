@@ -1,53 +1,29 @@
 using System.Text.Json;
 using AutoMapper;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.JsonObjects;
 using PayForMeBot.ReceiptApiClient.Models;
-using PayForMeBot.TelegramBotService.Exceptions;
 
 namespace PayForMeBot.ReceiptApiClient;
 
 public class ReceiptApiClient : IReceiptApiClient
 {
     private readonly ILogger<ReceiptApiClient> log;
-    private readonly IConfiguration config;
     private readonly IMapper mapper;
-    private readonly IHttpClientFactory httpClientFactory;
+    private readonly ReceiptApiService receiptApiService;
 
-    public ReceiptApiClient(ILogger<ReceiptApiClient> log, IConfiguration config, IMapper mapper,
-        IHttpClientFactory httpClientFactory)
+    public ReceiptApiClient(ILogger<ReceiptApiClient> log, IMapper mapper, ReceiptApiService receiptApiService)
     {
         this.log = log;
-        this.config = config;
         this.mapper = mapper;
-        this.httpClientFactory = httpClientFactory;
+        this.receiptApiService = receiptApiService;
     }
 
     public async Task<Receipt> GetReceipt(byte[] receiptImageBytes)
     {
-        var url = config.GetValue<string>("RECEIPT_API_URL");
-        var token = config.GetValue<string>("RECEIPT_API_TOKEN");
-
-        if (url == null)
-            throw new NullReceiptApiUrlException("Configuration error");
-        if (token == null)
-            throw new NullTokenException("Configuration error");
-
-        var formData = new MultipartFormDataContent();
-        formData.Add(new ByteArrayContent(receiptImageBytes), "qrfile", "filename");
-        formData.Add(new StringContent(token), "token");
-
-        log.LogInformation("Send request to {url}", url);
-
-        var httpClient = httpClientFactory.CreateClient();
-
-        var response = await httpClient.PostAsync(url, formData);
-        var stringResponse = await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync();
-
-        var jObject = JObject.Parse(stringResponse);
+        var jObject = await receiptApiService.GetReceiptApiResult(receiptImageBytes);
 
         var code = (jObject["code"] ?? throw new JsonException("Receipt api send unexpected json")).Value<int>();
 

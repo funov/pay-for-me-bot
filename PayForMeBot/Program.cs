@@ -34,7 +34,7 @@ public static class Program
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
                 services.AddSingleton<IDbDriver, DbDriver.DbDriver>();
                 services.AddAutoMapper(typeof(Program).Assembly);
-                services.AddHttpClient();
+                services.AddHttpClient<ReceiptApiService>();
             })
             .UseSerilog()
             .Build();

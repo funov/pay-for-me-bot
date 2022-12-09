@@ -110,6 +110,8 @@ public class MessageHandler : IMessageHandler
 
         try
         {
+            log.LogInformation("Send request to receipt api in {chatId}", chatId);
+
             var receipt = await receiptApiClient.GetReceipt(encryptedContent);
             var products = receipt.Products;
 
