@@ -13,8 +13,8 @@ namespace PayForMeBot.TelegramBotService.MessageHandler;
 
 public class MessageHandler : IMessageHandler
 {
-    private static HashSet<string> teamSelectionFlags = new() {"/start", "Завершить"};
-    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
+    private static HashSet<string> teamSelectionFlags = new() { "/start", "Завершить" };
+    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
@@ -52,7 +52,7 @@ public class MessageHandler : IMessageHandler
 
             case "Создать команду":
                 sqliteDriver.AddUser(message.Chat.Username!, chatId);
-                    
+
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Создана",
@@ -63,7 +63,7 @@ public class MessageHandler : IMessageHandler
                 break;
             case "Присоединиться к команде":
                 sqliteDriver.AddUser(message.Chat.Username!, chatId);
-                
+
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Присоединяюсь!",
@@ -95,7 +95,7 @@ public class MessageHandler : IMessageHandler
 
         if (fileInfo.FileSize != null)
         {
-            using var stream = new MemoryStream((int) fileInfo.FileSize.Value);
+            using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
             await client.DownloadFileAsync(filePath, stream, cancellationToken);
             encryptedContent = stream.ToArray();
         }
@@ -144,13 +144,13 @@ public class MessageHandler : IMessageHandler
             var text = $"{product.Name}";
             var guid = Guid.NewGuid();
             var guidReceipt = Guid.NewGuid();
-            
+
             var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
                 guid,
                 $"{product.TotalPrice} р.",
                 $"{product.Count} шт.",
                 "🛒");
-            
+
             sqliteDriver.AddProduct(guid, product, guidReceipt, message.Chat.Username!, message.Chat.Id);
 
             log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
@@ -184,7 +184,7 @@ public class MessageHandler : IMessageHandler
             {
                 log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
                 var teamId = sqliteDriver.GetTeamIdByUserTgId(callback.From.Username!);
-                sqliteDriver.AddUserProductBinding(callback.From.Username,teamId, guid);
+                sqliteDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
             }
             else
             {

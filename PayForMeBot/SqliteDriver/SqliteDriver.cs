@@ -6,109 +6,116 @@ namespace PayForMeBot.SqliteDriver;
 public class SqliteDriver : ISqliteDriver
 {
     private readonly DbContext db;
-    
+
     public SqliteDriver()
     {
         db = new DbContext();
     }
-    
-    // Создать команду, Присоединиться к команде
+
     public void AddUser(string userTgId, long teamId, string? spbLink)
     {
-        var user = new UserTable { telegramId = userTgId, teamId = teamId, sbpLink = spbLink};
-            
-        db.Users?.Add(user);
+        var user = new UserTable { TelegramId = userTgId, TeamId = teamId, SbpLink = spbLink };
+
+        db.Users.Add(user);
         db.SaveChanges();
     }
 
     public long GetTeamIdByUserTgId(string userTgId)
     {
-        var user = db.Users!.FirstOrDefault(s => s.telegramId!.Equals(userTgId));
-        return user!.teamId;
+        var user = db.Users.FirstOrDefault(userTable => userTable.TelegramId!.Equals(userTgId));
+        return user!.TeamId;
     }
-    
+
     public void AddSbpLink(string userTgId, Guid teamId, string? sbpLink)
     {
-        var user = db.Users!.FirstOrDefault(s =>
-            s.telegramId!.Equals(userTgId) && s.teamId.Equals(teamId));
+        var user = db.Users.FirstOrDefault(userTable
+            => userTable.TelegramId!.Equals(userTgId) && userTable.TeamId.Equals(teamId));
 
-        if (user != null) user.sbpLink = sbpLink;
+        if (user != null)
+            user.SbpLink = sbpLink;
+
         db.SaveChanges();
     }
 
     public double GetUserTotalPriceByTgId(string userTgId, Guid teamId)
     {
         var productsId = GetProductBindingsByUserTgId(userTgId, teamId)
-            .Select(s => s.productId)
-            .ToList();
+            .Select(s => s.ProductId);
 
-        var productPrices = new List<double>();
-        foreach (var productId in productsId)
-        {
-            productPrices.Add(GetProductByProductId(productId).Price);
-        }
-        
+        var productPrices = productsId
+            .Select(productId => GetProductByProductId(productId).Price);
+
         return productPrices.Sum();
     }
-    
+
     public UserProductTable[] GetProductBindingsByUserTgId(string userTgId, Guid teamId)
     {
         return db.Bindings!
-            .Where(s =>
-                s.userTelegramId!.Equals(userTgId) && s.teamId.Equals(teamId))
+            .Where(userProductTable
+                => userProductTable.UserTelegramId!.Equals(userTgId) && userProductTable.TeamId.Equals(teamId))
             .ToArray();
     }
 
     public Product GetProductByProductId(Guid id)
     {
-        var product = db.Products!.FirstOrDefault(s => s.TeamId.Equals(id));
+        var product = db.Products.FirstOrDefault(productTable => productTable.TeamId.Equals(id));
 
-        return new Product 
-            {Name = product!.Name, Price = product.Price, 
-                TotalPrice = product.TotalPrice, Count = product.Count};
+        return new Product
+        {
+            Name = product!.Name,
+            Price = product.Price,
+            TotalPrice = product.TotalPrice,
+            Count = product.Count
+        };
     }
-    
 
-    //Отжатие кнопочек
     public void DeleteUserProductBinding(string? userTelegramId, long teamId, Guid productId)
     {
-        var binding = db.Bindings!.FirstOrDefault(s =>
-            s.userTelegramId!.Equals(userTelegramId) && s.teamId.Equals(teamId));
-        db.Bindings!.Remove(binding!);
+        var binding = db.Bindings
+            .FirstOrDefault(userProductTable
+                => userProductTable.UserTelegramId!.Equals(userTelegramId) && userProductTable.TeamId.Equals(teamId));
+
+        db.Bindings.Remove(binding!);
         db.SaveChanges();
     }
 
     public string? GetSbpLinkByUserTgId(string userTgId)
     {
-        var user = db.Users!.FirstOrDefault(s => s.telegramId!.Equals(userTgId));
-        return user?.sbpLink;
+        var user = db.Users.FirstOrDefault(userTable => userTable.TelegramId!.Equals(userTgId));
+
+        return user?.SbpLink;
     }
 
-    // Когда прилетают кнопочки или ручной ввод
     public void AddProduct(Guid id, Product productModel, Guid receiptId, string buyerTelegramId, long teamId)
     {
-        var productTable = new ProductTable { Id = id, Name = productModel.Name, TotalPrice = productModel.TotalPrice, 
-            Price = productModel.Price, Count = productModel.Count, TeamId = teamId, 
-            ReceiptId = receiptId, BuyerTelegramId = buyerTelegramId};
-            
-        db.Products?.Add(productTable);
+        var productTable = new ProductTable
+        {
+            Id = id,
+            Name = productModel.Name,
+            TotalPrice = productModel.TotalPrice,
+            Price = productModel.Price,
+            Count = productModel.Count,
+            TeamId = teamId,
+            ReceiptId = receiptId,
+            BuyerTelegramId = buyerTelegramId
+        };
+
+        db.Products.Add(productTable);
         db.SaveChanges();
     }
 
-    // Когда прилетают кнопочки или ручной ввод
     public void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, string buyerTelegramId, long teamId)
     {
-        for (int i = 0; i < ids.Length; i++)
+        for (var i = 0; i < ids.Length; i++)
         {
             AddProduct(ids[i], productModels[i], receiptId, buyerTelegramId, teamId);
         }
     }
 
-    // Нажатие кнопочек
     public void AddUserProductBinding(string? userTelegramId, long teamId, Guid productId)
     {
-        var binding = new UserProductTable {userTelegramId = userTelegramId, productId = productId, teamId = teamId};
-        db.Bindings!.Add(binding);
+        var binding = new UserProductTable { UserTelegramId = userTelegramId, ProductId = productId, TeamId = teamId };
+        db.Bindings.Add(binding);
         db.SaveChanges();
     }
 }

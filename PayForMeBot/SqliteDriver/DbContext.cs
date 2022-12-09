@@ -6,17 +6,14 @@ namespace PayForMeBot.SqliteDriver;
 
 public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext
 {
-    public DbSet<UserTable>? Users { get; set; }
-    public DbSet<ProductTable>? Products { get; set; }    
-    public DbSet<UserProductTable>? Bindings { get; set; }
+    public DbSet<UserTable> Users => Set<UserTable>();
+    public DbSet<ProductTable> Products => Set<ProductTable>();
+    public DbSet<UserProductTable> Bindings => Set<UserProductTable>();
 
-    public DbContext()
-    {
-        Database.EnsureCreated();
-    }
- 
+    public DbContext() => Database.EnsureCreated();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite(@"Data Source=UsersProducts.db");
+        optionsBuilder.UseSqlite("Data Source=UsersProducts.db");
     }
 }
