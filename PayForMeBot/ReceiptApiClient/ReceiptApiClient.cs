@@ -15,14 +15,15 @@ public class ReceiptApiClient : IReceiptApiClient
     private readonly ILogger<ReceiptApiClient> log;
     private readonly IConfiguration config;
     private readonly IMapper mapper;
-    private readonly HttpClient httpClient;
+    private readonly IHttpClientFactory httpClientFactory;
 
-    public ReceiptApiClient(ILogger<ReceiptApiClient> log, IConfiguration config, IMapper mapper)
+    public ReceiptApiClient(ILogger<ReceiptApiClient> log, IConfiguration config, IMapper mapper,
+        IHttpClientFactory httpClientFactory)
     {
         this.log = log;
         this.config = config;
         this.mapper = mapper;
-        httpClient = new HttpClient();
+        this.httpClientFactory = httpClientFactory;
     }
 
     public async Task<Receipt> GetReceipt(byte[] receiptImageBytes)
@@ -40,6 +41,8 @@ public class ReceiptApiClient : IReceiptApiClient
         formData.Add(new StringContent(token), "token");
 
         log.LogInformation("Send request to {url}", url);
+
+        var httpClient = httpClientFactory.CreateClient();
 
         var response = await httpClient.PostAsync(url, formData);
         var stringResponse = await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync();
