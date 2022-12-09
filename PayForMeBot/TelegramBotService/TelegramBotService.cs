@@ -75,7 +75,7 @@ public class TelegramBotService : ITelegramBotService
         {
             case { Type: UpdateType.CallbackQuery }:
                 if (update.CallbackQuery != null)
-                    await messageHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken, update.Message);
+                    await messageHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
                 break;
         }
     }

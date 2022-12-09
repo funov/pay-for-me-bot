@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PayForMeBot.SqliteDriver.Models;
-using Product = PayForMeBot.SqliteDriver.Models;
+
 
 namespace PayForMeBot.SqliteDriver;
 

@@ -165,7 +165,7 @@ public class MessageHandler : IMessageHandler
     }
 
     public async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback,
-        CancellationToken cancellationToken,  Message message)
+        CancellationToken cancellationToken)
     {
         if (callback.Message != null && callback.Data != null && Guid.TryParse(callback.Data, out var guid))
         {
@@ -190,7 +190,7 @@ public class MessageHandler : IMessageHandler
             {
                 log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
                 var teamId = sqliteDriver.GetTeamIdByUserTgId(callback.From.Username!);
-                sqliteDriver.DeleteUserProductBinding(callback.From.Username,teamId, guid);
+                sqliteDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
             }
 
             await client.EditMessageTextAsync(
