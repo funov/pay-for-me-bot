@@ -1,6 +1,5 @@
 using System.Text.Json;
 using AutoMapper;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.JsonObjects;
@@ -10,13 +9,11 @@ namespace PayForMeBot.ReceiptApiClient;
 
 public class ReceiptApiClient : IReceiptApiClient
 {
-    private readonly ILogger<ReceiptApiClient> log;
     private readonly IMapper mapper;
     private readonly ReceiptApiService receiptApiService;
 
-    public ReceiptApiClient(ILogger<ReceiptApiClient> log, IMapper mapper, ReceiptApiService receiptApiService)
+    public ReceiptApiClient(IMapper mapper, ReceiptApiService receiptApiService)
     {
-        this.log = log;
         this.mapper = mapper;
         this.receiptApiService = receiptApiService;
     }
