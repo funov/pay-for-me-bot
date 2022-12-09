@@ -2,7 +2,7 @@ using Product = PayForMeBot.ReceiptApiClient.Models.Product;
 
 namespace PayForMeBot.SqliteDriver;
 
-public interface ISqliteDriver
+public interface IDbDriver
 {
     void AddUser(string userTgId, long teamId, string? spbLink = null);
     long GetTeamIdByUserTgId(string userTgId);

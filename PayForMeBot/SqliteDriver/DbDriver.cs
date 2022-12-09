@@ -3,14 +3,11 @@ using Product = PayForMeBot.ReceiptApiClient.Models.Product;
 
 namespace PayForMeBot.SqliteDriver;
 
-public class SqliteDriver : ISqliteDriver
+public class DbDriver : IDbDriver
 {
     private readonly DbContext db;
 
-    public SqliteDriver()
-    {
-        db = new DbContext();
-    }
+    public DbDriver(string connectionSting) => db = new DbContext(connectionSting);
 
     public void AddUser(string userTgId, long teamId, string? spbLink)
     {

@@ -19,15 +19,15 @@ public class MessageHandler : IMessageHandler
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
-    private readonly ISqliteDriver sqliteDriver;
+    private readonly IDbDriver dbDriver;
 
     public MessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient,
-        IKeyboardMarkup keyboardMarkup, ISqliteDriver sqliteDriver)
+        IKeyboardMarkup keyboardMarkup, IDbDriver dbDriver)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
         this.keyboardMarkup = keyboardMarkup;
-        this.sqliteDriver = sqliteDriver;
+        this.dbDriver = dbDriver;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -48,10 +48,10 @@ public class MessageHandler : IMessageHandler
 
         switch (message.Text!)
         {
-            // TODO Брать их из массива
+            // TODO Брать их из массива (teamSelectionLabels)
 
             case "Создать команду":
-                sqliteDriver.AddUser(message.Chat.Username!, chatId);
+                dbDriver.AddUser(message.Chat.Username!, chatId);
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
@@ -62,7 +62,7 @@ public class MessageHandler : IMessageHandler
 
                 break;
             case "Присоединиться к команде":
-                sqliteDriver.AddUser(message.Chat.Username!, chatId);
+                dbDriver.AddUser(message.Chat.Username!, chatId);
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
@@ -151,7 +151,7 @@ public class MessageHandler : IMessageHandler
                 $"{product.Count} шт.",
                 "🛒");
 
-            sqliteDriver.AddProduct(guid, product, guidReceipt, message.Chat.Username!, message.Chat.Id);
+            dbDriver.AddProduct(guid, product, guidReceipt, message.Chat.Username!, message.Chat.Id);
 
             log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
 
@@ -183,14 +183,14 @@ public class MessageHandler : IMessageHandler
             if (inlineKeyboard[2].Text == "🛒")
             {
                 log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
-                var teamId = sqliteDriver.GetTeamIdByUserTgId(callback.From.Username!);
-                sqliteDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
+                var teamId = dbDriver.GetTeamIdByUserTgId(callback.From.Username!);
+                dbDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
             }
             else
             {
                 log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
-                var teamId = sqliteDriver.GetTeamIdByUserTgId(callback.From.Username!);
-                sqliteDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
+                var teamId = dbDriver.GetTeamIdByUserTgId(callback.From.Username!);
+                dbDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
             }
 
             await client.EditMessageTextAsync(

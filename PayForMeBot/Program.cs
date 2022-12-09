@@ -32,7 +32,7 @@ public static class Program
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IMessageHandler, MessageHandler>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
-                services.AddSingleton<ISqliteDriver, SqliteDriver.SqliteDriver>();
+                services.AddSingleton<IDbDriver>(_ => new DbDriver("Data Source=UsersProducts.db"));
                 services.AddAutoMapper(typeof(Program).Assembly);
             })
             .UseSerilog()
