@@ -1,4 +1,4 @@
-namespace PayForMeBot.SqliteDriver.Models;
+namespace PayForMeBot.DbDriver.Models;
 
 public class UserTable
 {

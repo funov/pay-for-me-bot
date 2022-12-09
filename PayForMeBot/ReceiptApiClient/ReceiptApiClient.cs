@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.JsonObjects;
 using PayForMeBot.ReceiptApiClient.Models;
+using PayForMeBot.TelegramBotService.Exceptions;
 
 namespace PayForMeBot.ReceiptApiClient;
 
@@ -29,10 +30,10 @@ public class ReceiptApiClient : IReceiptApiClient
         var url = config.GetValue<string>("RECEIPT_API_URL");
         var token = config.GetValue<string>("RECEIPT_API_TOKEN");
 
-        if (url == null || token == null)
-        {
-            throw new ArgumentException("Url or token don't exists in appsettings.json");
-        }
+        if (url == null)
+            throw new NullReceiptApiUrlException("Configuration error");
+        if (token == null)
+            throw new NullTokenException("Configuration error");
 
         var formData = new MultipartFormDataContent();
         formData.Add(new ByteArrayContent(receiptImageBytes), "qrfile", "filename");

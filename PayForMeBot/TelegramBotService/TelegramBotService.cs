@@ -29,7 +29,7 @@ public class TelegramBotService : ITelegramBotService
         var token = config.GetValue<string>("TELEGRAM_BOT_TOKEN");
 
         if (token == null)
-            throw new NullTokenException("Bad configuration secrets.json");
+            throw new NullTokenException("Configuration error");
 
         var botClient = new TelegramBotClient(token);
 

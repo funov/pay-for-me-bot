@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace PayForMeBot.SqliteDriver.Models;
+namespace PayForMeBot.DbDriver.Models;
 
 public class ProductTable
 {

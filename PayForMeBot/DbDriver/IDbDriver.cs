@@ -1,6 +1,6 @@
 using Product = PayForMeBot.ReceiptApiClient.Models.Product;
 
-namespace PayForMeBot.SqliteDriver;
+namespace PayForMeBot.DbDriver;
 
 public interface IDbDriver
 {

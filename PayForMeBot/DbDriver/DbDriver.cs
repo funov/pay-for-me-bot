@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
-using PayForMeBot.SqliteDriver.Models;
+using PayForMeBot.DbDriver.Models;
 using Product = PayForMeBot.ReceiptApiClient.Models.Product;
 
-namespace PayForMeBot.SqliteDriver;
+namespace PayForMeBot.DbDriver;
 
 public class DbDriver : IDbDriver
 {

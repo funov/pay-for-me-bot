@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using PayForMeBot.SqliteDriver.Exceptions;
-using PayForMeBot.SqliteDriver.Models;
+using PayForMeBot.DbDriver.Exceptions;
+using PayForMeBot.DbDriver.Models;
 
 
-namespace PayForMeBot.SqliteDriver;
+namespace PayForMeBot.DbDriver;
 
 public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext
 {
@@ -22,7 +22,7 @@ public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (connectionSting == null)
-            throw new NullConnectionStringException("Bad configuration secrets.json");
+            throw new NullConnectionStringException("Configuration error");
 
         optionsBuilder.UseSqlite(connectionSting);
     }

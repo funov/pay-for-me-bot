@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.Models;
-using PayForMeBot.SqliteDriver;
+using PayForMeBot.DbDriver;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot.Types.ReplyMarkups;
 
