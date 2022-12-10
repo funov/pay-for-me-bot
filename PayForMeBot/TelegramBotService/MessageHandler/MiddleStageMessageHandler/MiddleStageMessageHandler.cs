@@ -42,31 +42,46 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
+        var productGuid = Guid.NewGuid();
         var dbProduct = ParseTextToProduct(message.Text!);
 
-        // db.AddProduct(...);
+        var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+        dbDriver.AddProduct(productGuid, dbProduct, productGuid, chatId, teamId);
+
         log.LogInformation("User added {product} with cost {price} in chat {chatId}",
             dbProduct.Name, dbProduct.Price, chatId);
         
         switch (message.Text!)
         {
-            // TODO Подсчитать расходы и скинуть ссылки каждому
             // TODO Добавить ограничение завершения только на лидера группы
             // TODO рефакторинг
             
             // TODO когда чел заходит в endStage, удалить клавиатуру с кнопкой готово
 
-            // case "Готово":
-            //     await client.SendTextMessageAsync(
-            //         chatId: chatId,
-            //         text: "Уверен?",
-            //         cancellationToken: cancellationToken);
-            //     return;
-            
+            case "Готово":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Ты уверен, что все участники команды выбрали продукты?",
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Да", "Нет" }),
+                    cancellationToken: cancellationToken);
+                return;
             case "/help":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: HelpMessage,
+                    cancellationToken: cancellationToken);
+                return;
+            case "Да":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Введите СБП линк",
+                    cancellationToken: cancellationToken);
+                dbDriver.ChangeUserState(chatId, teamId, "end");
+                return;
+            case "Нет":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Ок, нажми тогда в другой раз!",
                     cancellationToken: cancellationToken);
                 return;
         }

@@ -12,5 +12,5 @@ public class ProductTable
     public double TotalPrice { get; set; }
     public Guid TeamId { get; set; }
     public Guid ReceiptId { get; set; }
-    public string? BuyerTelegramId { get; set; } // chatId
+    public long BuyerChatId { get; set; }
 }
