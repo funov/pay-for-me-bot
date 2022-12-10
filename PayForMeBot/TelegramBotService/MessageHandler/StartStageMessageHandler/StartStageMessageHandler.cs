@@ -43,7 +43,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         // TODO Подсчитать расходы и скинуть ссылки каждому
         // TODO Добавить ограничение завершения только на лидера группы
         // TODO рефакторинг
-        
+
         // TODO если чел в midStage, отправить ему клавиатуру с кнопкой "готово"
 
         switch (message.Text!)
@@ -64,7 +64,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
             case "Создать команду":
                 if (IsUserInCommand())
                 {
-                    var userTeamId = new Guid();
+                    var userTeamId = Guid.NewGuid();
                     log.LogInformation("{username} created team {guid} in {chatId}",
                         message.Chat.Username, userTeamId, chatId);
 
@@ -83,7 +83,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 {
                     await client.SendTextMessageAsync(
                         chatId: chatId,
-                        text: "Ты уже в команде!", 
+                        text: "Ты уже в команде!",
                         cancellationToken: cancellationToken
                     );
                     break;
@@ -139,6 +139,6 @@ public class StartStageMessageHandler : IStartStageMessageHandler
     {
         // TODO проверить, в команде ли пользователь
 
-        return false;
+        return true;
     }
 }

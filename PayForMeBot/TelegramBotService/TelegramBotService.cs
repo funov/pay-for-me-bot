@@ -69,52 +69,50 @@ public class TelegramBotService : ITelegramBotService
 
     private async Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
     {
-        var chatId = update.Message!.Chat.Id;
-        var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-        var currentStage = dbDriver.GetUserStage(chatId, teamId)!;
-
         // TODO refactoring :(
 
-        switch (currentStage)
+        string currentStage;
+
+        try
         {
-            case "start":
-                switch (update.Message)
+            var chatId = update.Message!.Chat.Id;
+            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+            currentStage = dbDriver.GetUserStage(chatId, teamId)!;
+        }
+        catch (NullReferenceException)
+        {
+            currentStage = "start";
+        }
+
+        switch (update.Message)
+        {
+            case { Type: MessageType.Text }:
+                switch (currentStage)
                 {
-                    case { Type: MessageType.Text }:
+                    case "start":
                         await startHandler.HandleTextAsync(client, update.Message, cancellationToken);
                         break;
-                }
-
-                break;
-            case "middle":
-                switch (update.Message)
-                {
-                    case { Type: MessageType.Text }:
+                    case "middle":
                         await middleHandler.HandleTextAsync(client, update.Message, cancellationToken);
                         break;
-
-                    case { Type: MessageType.Photo }:
-                        await middleHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
-                        break;
-                }
-
-                switch (update)
-                {
-                    case { Type: UpdateType.CallbackQuery }:
-                        if (update.CallbackQuery != null)
-                            await middleHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
-                        break;
-                }
-
-                break;
-            case "end":
-                switch (update.Message)
-                {
-                    case { Type: MessageType.Text }:
+                    case "end":
                         await endHandler.HandleTextAsync(client, update.Message, cancellationToken);
                         break;
                 }
 
+                break;
+
+            case { Type: MessageType.Photo }:
+                if (currentStage == "middle")
+                    await middleHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
+                break;
+        }
+
+        switch (update)
+        {
+            case { Type: UpdateType.CallbackQuery }:
+                if (update.CallbackQuery != null && currentStage is "middle" or "start")
+                    await middleHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
                 break;
         }
     }
