@@ -11,9 +11,16 @@ public class DbDriver : IDbDriver
 
     public DbDriver(IConfiguration config) => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
-    public void AddUser(string userTgId, Guid teamId, string? spbLink)
+    public void AddUser(string userTgId, long userChatId, Guid teamId, string? spbLink)
     {
-        var user = new UserTable { UserTelegramId = userTgId, TeamId = teamId, SbpLink = spbLink, Stage = "start" };
+        var user = new UserTable
+        {
+            UserTelegramId = userTgId, 
+            TeamId = teamId, 
+            UserChatId = userChatId, 
+            SbpLink = spbLink, 
+            Stage = "start"
+        };
 
         db.Users.Add(user);
         db.SaveChanges();

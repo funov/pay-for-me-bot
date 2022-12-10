@@ -25,7 +25,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
            "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
            "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
-    public StartStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IKeyboardMarkup keyboardMarkup, 
+    public StartStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IKeyboardMarkup keyboardMarkup,
         IDbDriver dbDriver)
     {
         this.log = log;
@@ -38,7 +38,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         var chatId = message.Chat.Id;
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
-        
+
         // TODO Брать их из массива (teamSelectionLabels)
         // TODO Подсчитать расходы и скинуть ссылки каждому
         // TODO Добавить ограничение завершения только на лидера группы
@@ -60,28 +60,23 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     cancellationToken: cancellationToken);
                 break;
             case "Создать команду":
-                // TODO fix it
-                // dbDriver.AddUser(message.Chat.Username!, chatId);
-                var guid = new Guid();
+                var userTeamId = new Guid();
                 log.LogInformation("{username} created team {guid} in {chatId}",
-                    message.Chat.Username, guid, chatId);
+                    message.Chat.Username, userTeamId, chatId);
+
+                dbDriver.AddUser(message.Chat.Username!, chatId, userTeamId, null);
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: $"Id комманды: {guid}",
+                    text: $"Код вашей комманды:\n```{userTeamId}```",
                     replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken
                 );
                 break;
             case "Присоединиться к команде":
-                // TODO fix it
-                // dbDriver.AddUser(message.Chat.Username!, chatId);
-                // Скинь гуид
-                // log.LogInformation("{username} joined team {guid} in {chatId}",
-                //     message.Chat.Username, guid, chatId);
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Отправь Id команды",
+                    text: "Отправь код вашей команды",
                     replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken
                 );
@@ -92,6 +87,8 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         {
             log.LogInformation("{username} joined team {guid} in {chatId}",
                 message.Chat.Username, teamId, chatId);
+
+            dbDriver.AddUser(message.Chat.Username!, chatId, teamId, null);
         }
     }
 }

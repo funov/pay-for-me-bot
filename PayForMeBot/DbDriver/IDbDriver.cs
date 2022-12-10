@@ -4,9 +4,10 @@ namespace PayForMeBot.DbDriver;
 
 public interface IDbDriver
 {
-    void AddUser(string userTelegramId, Guid teamId, string? spbLink = null);
+    void AddUser(string userTgId, long userChatId, Guid teamId, string? spbLink);
     Guid GetTeamIdByUserTelegramId(string userTelegramId);
     void AddSbpLink(string userTelegramId, Guid teamId, string? sbpLink);
+    void ChangeUserState(string userTelegramId, Guid teamId, string state);
     void AddProduct(Guid id, Product productModel, Guid receiptId, string buyerTelegramId, Guid teamId);
     void AddUserProductBinding(string? userTelegramId, Guid teamId, Guid productId);
     void DeleteUserProductBinding(string? userTelegramId, Guid teamId, Guid productId);
