@@ -13,7 +13,6 @@ namespace PayForMeBot.TelegramBotService.MessageHandler;
 
 public class MessageHandler : IMessageHandler
 {
-    private static HashSet<string> openTeamFlags = new() {"/start", "start", "Начать"};
     private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
 
     private static HashSet<string> closeTeamFlags = new() {"/end", "end", "Завершить"};
@@ -66,16 +65,6 @@ public class MessageHandler : IMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
-        if (openTeamFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Создай или присоединись к команде!",
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
-                cancellationToken: cancellationToken);
-            return;
-        }
-
         if (closeTeamFlags.Contains(message.Text!))
         {
             await client.SendTextMessageAsync(
@@ -85,7 +74,6 @@ public class MessageHandler : IMessageHandler
                 cancellationToken: cancellationToken);
             return;
         }
-
 
         if (helpFlags.Contains(message.Text!))
         {
@@ -104,30 +92,6 @@ public class MessageHandler : IMessageHandler
             // TODO Добавить ограничение завершения только на лидера группы
 
             // TODO рефакторинг
-
-            case "Создать команду":
-                // TODO fix it
-                // dbDriver.AddUser(message.Chat.Username!, chatId);
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Создана",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-
-                break;
-            case "Присоединиться к команде":
-                // TODO fix it
-                // dbDriver.AddUser(message.Chat.Username!, chatId);
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Присоединяюсь!",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-                break;
 
             case "Подсчитать расходы и прислать реквизиты":
                 // dbDriver.AddUser(message.Chat.Username!, chatId);
@@ -174,7 +138,7 @@ public class MessageHandler : IMessageHandler
 
         if (fileInfo.FileSize != null)
         {
-            using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
+            using var stream = new MemoryStream((int) fileInfo.FileSize.Value);
             await client.DownloadFileAsync(filePath, stream, cancellationToken);
             encryptedContent = stream.ToArray();
         }
