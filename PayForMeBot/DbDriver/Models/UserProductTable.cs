@@ -6,7 +6,7 @@ public class UserProductTable
 {
     [Key]
     public Guid Id { get; set; }
-    public string? UserTelegramId { get; set; } // chatId
+    public long UserChatId { get; set; }
     public Guid ProductId { get; set; }
     public Guid TeamId { get; set; }
 }

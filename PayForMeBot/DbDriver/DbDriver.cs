@@ -15,10 +15,10 @@ public class DbDriver : IDbDriver
     {
         var user = new UserTable
         {
-            UserTelegramId = userTgId, 
-            TeamId = teamId, 
-            UserChatId = userChatId, 
-            SbpLink = spbLink, 
+            UserTelegramId = userTgId,
+            TeamId = teamId,
+            UserChatId = userChatId,
+            SbpLink = spbLink,
             Stage = "start"
         };
 
@@ -26,50 +26,50 @@ public class DbDriver : IDbDriver
         db.SaveChanges();
     }
 
-    public Guid GetTeamIdByUserTelegramId(string userTelegramId)
+    public Guid GetTeamIdByUserChatId(long userChatId)
         => db.Users
-            .FirstOrDefault(userTable => userTable.UserTelegramId!.Equals(userTelegramId))
+            .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))
             !.TeamId;
 
-    public void AddSbpLink(string userTelegramId, Guid teamId, string? sbpLink)
+    public void AddSbpLink(long userChatId, Guid teamId, string? sbpLink)
     {
         var userTable = db.Users.FirstOrDefault(userTable
-            => userTable.UserTelegramId!.Equals(userTelegramId) && userTable.TeamId.Equals(teamId));
+            => userTable.UserChatId.Equals(userChatId) && userTable.TeamId.Equals(teamId));
 
         if (userTable == null)
-            throw new InvalidOperationException($"User {userTelegramId} not exist");
+            throw new InvalidOperationException($"User {userChatId} not exist");
 
         userTable.SbpLink = sbpLink;
         db.SaveChanges();
     }
 
-    public void ChangeUserState(string userTelegramId, Guid teamId, string state)
+    public void ChangeUserState(long userChatId, Guid teamId, string state)
     {
         if (!states.Contains(state))
             throw new InvalidOperationException($"Incorrect state {state}");
 
         var userTable = db.Users.FirstOrDefault(userTable
-            => userTable.UserTelegramId!.Equals(userTelegramId) && userTable.TeamId.Equals(teamId));
+            => userTable.UserChatId.Equals(userChatId) && userTable.TeamId.Equals(teamId));
 
         if (userTable == null)
-            throw new InvalidOperationException($"User {userTelegramId} not exist");
+            throw new InvalidOperationException($"User {userChatId} not exist");
 
         userTable.Stage = state;
         db.SaveChanges();
     }
 
-    public double GetUserTotalPriceByTelegramId(string userTelegramId, Guid teamId)
-        => GetProductBindingsByUserTgId(userTelegramId, teamId)
-            .Select(s => s.ProductId)
+    public double GetUserTotalPriceByChatId(long userChatId, Guid teamId)
+        => GetProductBindingsByUserChatId(userChatId, teamId)
+            .Select(userProductTable => userProductTable.ProductId)
             .Select(productId => GetProductByProductId(productId).Price)
             .Sum();
 
-    private IEnumerable<UserProductTable> GetProductBindingsByUserTgId(string userTgId, Guid teamId)
+    private IEnumerable<UserProductTable> GetProductBindingsByUserChatId(long userChatId, Guid teamId)
         => db.Bindings
             .Where(userProductTable
-                => userProductTable.UserTelegramId!.Equals(userTgId) && userProductTable.TeamId.Equals(teamId));
+                => userProductTable.UserChatId.Equals(userChatId) && userProductTable.TeamId.Equals(teamId));
 
-    private Product GetProductByProductId(Guid id)
+    public Product GetProductByProductId(Guid id)
     {
         var product = db.Products.FirstOrDefault(productTable => productTable.TeamId.Equals(id));
 
@@ -82,20 +82,22 @@ public class DbDriver : IDbDriver
         };
     }
 
-    public void DeleteUserProductBinding(string? userTelegramId, Guid teamId, Guid productId)
+    public void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId)
     {
         var binding = db.Bindings
             .FirstOrDefault(userProductTable
-                => userProductTable.UserTelegramId!.Equals(userTelegramId) && userProductTable.TeamId.Equals(teamId));
+                => userProductTable.UserChatId.Equals(userChatId)
+                   && userProductTable.TeamId.Equals(teamId)
+                   && userProductTable.ProductId.Equals(productId));
 
         db.Bindings.Remove(binding!);
         db.SaveChanges();
     }
 
-    public string? GetSbpLinkByUserTelegramId(string userTelegramId)
-        => db.Users.FirstOrDefault(userTable => userTable.UserTelegramId!.Equals(userTelegramId))?.SbpLink;
+    public string? GetSbpLinkByUserChatId(long userChatId)
+        => db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))?.SbpLink;
 
-    public void AddProduct(Guid id, Product productModel, Guid receiptId, string buyerTelegramId, Guid teamId)
+    public void AddProduct(Guid id, Product productModel, Guid receiptId, long buyerChatId, Guid teamId)
     {
         var productTable = new ProductTable
         {
@@ -106,24 +108,24 @@ public class DbDriver : IDbDriver
             Count = productModel.Count,
             TeamId = teamId,
             ReceiptId = receiptId,
-            BuyerTelegramId = buyerTelegramId
+            BuyerChatId = buyerChatId
         };
 
         db.Products.Add(productTable);
         db.SaveChanges();
     }
 
-    public void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, string buyerTelegramId, Guid teamId)
+    public void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, long buyerChatId, Guid teamId)
     {
         for (var i = 0; i < ids.Length; i++)
         {
-            AddProduct(ids[i], productModels[i], receiptId, buyerTelegramId, teamId);
+            AddProduct(ids[i], productModels[i], receiptId, buyerChatId, teamId);
         }
     }
 
-    public void AddUserProductBinding(string? userTelegramId, Guid teamId, Guid productId)
+    public void AddUserProductBinding(long userChatId, Guid teamId, Guid productId)
     {
-        var binding = new UserProductTable { UserTelegramId = userTelegramId, ProductId = productId, TeamId = teamId };
+        var binding = new UserProductTable { UserChatId = userChatId, ProductId = productId, TeamId = teamId };
         db.Bindings.Add(binding);
         db.SaveChanges();
     }

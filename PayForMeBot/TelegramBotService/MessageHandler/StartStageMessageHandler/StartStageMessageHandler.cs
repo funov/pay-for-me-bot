@@ -72,6 +72,15 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken
                 );
+
+                dbDriver.ChangeUserState(chatId, userTeamId, "middle");
+
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"Можете начинать писать продукты!",
+                    replyMarkup: new ReplyKeyboardRemove(),
+                    cancellationToken: cancellationToken
+                );
                 break;
             case "Присоединиться к команде":
                 await client.SendTextMessageAsync(
@@ -89,6 +98,14 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 message.Chat.Username, teamId, chatId);
 
             dbDriver.AddUser(message.Chat.Username!, chatId, teamId, null);
+            dbDriver.ChangeUserState(chatId, teamId, "middle");
+
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: $"Можете начинать писать продукты!",
+                replyMarkup: new ReplyKeyboardRemove(),
+                cancellationToken: cancellationToken
+            );
         }
     }
 }
