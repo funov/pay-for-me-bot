@@ -7,12 +7,13 @@ namespace PayForMeBot.DbDriver;
 public class DbDriver : IDbDriver
 {
     private readonly DbContext db;
+    private static HashSet<string> states = new() { "start", "middle", "end" };
 
     public DbDriver(IConfiguration config) => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
     public void AddUser(string userTgId, Guid teamId, string? spbLink)
     {
-        var user = new UserTable { UserTelegramId = userTgId, TeamId = teamId, SbpLink = spbLink };
+        var user = new UserTable { UserTelegramId = userTgId, TeamId = teamId, SbpLink = spbLink, Stage = "start" };
 
         db.Users.Add(user);
         db.SaveChanges();
@@ -32,6 +33,21 @@ public class DbDriver : IDbDriver
             throw new InvalidOperationException($"User {userTelegramId} not exist");
 
         userTable.SbpLink = sbpLink;
+        db.SaveChanges();
+    }
+
+    public void ChangeUserState(string userTelegramId, Guid teamId, string state)
+    {
+        if (!states.Contains(state))
+            throw new InvalidOperationException($"Incorrect state {state}");
+
+        var userTable = db.Users.FirstOrDefault(userTable
+            => userTable.UserTelegramId!.Equals(userTelegramId) && userTable.TeamId.Equals(teamId));
+
+        if (userTable == null)
+            throw new InvalidOperationException($"User {userTelegramId} not exist");
+
+        userTable.Stage = state;
         db.SaveChanges();
     }
 
