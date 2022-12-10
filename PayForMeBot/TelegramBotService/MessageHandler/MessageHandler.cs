@@ -21,6 +21,16 @@ public class MessageHandler : IMessageHandler
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IDbDriver dbDriver;
 
+    private static string HelpMessage
+        => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
+           "2) Далее каждого попросят ввести номер телефона и ссылку Тинькофф (если есть) для " +
+           "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\n" +
+           "3) Теперь можно начать вводить товары или услуги. Напиши продукт и его цену, либо просто отправь чек " +
+           "(где хорошо виден QR-код). Далее нажми на «🛒», чтобы позже заплатить " +
+           "за этот товар, если все хорошо, ты увидишь «✅», для отмены нажми еще раз на эту кнопку. 🤓🤓🤓\n\n" +
+           "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
+           "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
+
     public MessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient,
         IKeyboardMarkup keyboardMarkup, IDbDriver dbDriver)
     {
@@ -70,6 +80,13 @@ public class MessageHandler : IMessageHandler
                     chatId: chatId,
                     text: "Присоединяюсь!",
                     replyMarkup: new ReplyKeyboardRemove(),
+                    cancellationToken: cancellationToken
+                );
+                break;
+            case "/help":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: HelpMessage,
                     cancellationToken: cancellationToken
                 );
                 break;
@@ -143,11 +160,12 @@ public class MessageHandler : IMessageHandler
     private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Product> products,
         string telegramUserName, CancellationToken cancellationToken)
     {
+        var receiptGuid = Guid.NewGuid();
+
         foreach (var product in products)
         {
             var text = $"{product.Name}";
             var guid = Guid.NewGuid();
-            var guidReceipt = Guid.NewGuid();
 
             var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
                 guid,
@@ -156,7 +174,7 @@ public class MessageHandler : IMessageHandler
                 "🛒");
 
             // TODO fix it
-            // dbDriver.AddProduct(guid, product, guidReceipt, telegramUserName, message.Chat.Id);
+            // dbDriver.AddProduct(guid, product, receiptGuid, telegramUserName, message.Chat.Id);
 
             log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
 
@@ -188,7 +206,7 @@ public class MessageHandler : IMessageHandler
             if (inlineKeyboard[2].Text == "🛒")
             {
                 log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
-                
+
                 // TODO fix it
                 // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
                 // dbDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
@@ -196,7 +214,7 @@ public class MessageHandler : IMessageHandler
             else
             {
                 log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
-                
+
                 // TODO fix it
                 // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
                 // dbDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
