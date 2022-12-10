@@ -9,14 +9,10 @@ namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 
 public class EndStageMessageHandler : IEndStageMessageHandler
 {
-    private static HashSet<string> closeTeamFlags = new() {"/end", "end", "Готово"};
-
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IDbDriver dbDriver;
-
-    private static HashSet<string> helpFlags = new() {"/help", "help", "Помощь"};
 
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
@@ -34,13 +30,34 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
-        if (closeTeamFlags.Contains(message.Text!))
+        switch (message.Text!)
         {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Test closing team / Cкинь свои реквизиты",
-                cancellationToken: cancellationToken);
-            return;
+            case "Помощь":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: HelpMessage,
+                    cancellationToken: cancellationToken);
+                return;
+            case "Готово":
+                // Если еще не скинул реквизиты, то прими, иначе -- послать далеко и надолго
+                if (!CheckIfUserSentReceiveMoneyMethod())
+                {
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Отправь свои реквизиты: " +
+                              "номер телефона и/или ссылку на Тинькофф, если все в команде используют Тинькофф банк",
+                        cancellationToken: cancellationToken);
+                    return;
+                }
+                
+                else
+                {
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Ты уже нажал Готово, твои реквизиты приняты",
+                        cancellationToken: cancellationToken);
+                    return;
+                }
         }
 
         if (CheckIfReceiveMoneyMethodIsValid(message.Text!))
@@ -63,17 +80,9 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                       "Отправь мне ссылку на Тинькофф и/или номер телефона в формате +7",
                 cancellationToken: cancellationToken);
         }
-
-        if (helpFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: HelpMessage,
-                cancellationToken: cancellationToken);
-        }
     }
 
-    public async Task SendReceiveMoneyMethodsAndDebt(ITelegramBotClient client, Message message,
+    private async Task SendReceiveMoneyMethodsAndDebt(ITelegramBotClient client, Message message,
         CancellationToken cancellationToken)
     {
         // TODO сделать отправку реквизитов + общую стоимость
@@ -85,6 +94,12 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             text: "rm method + total price",
             cancellationToken: cancellationToken
         );
+    }
+
+    private bool CheckIfUserSentReceiveMoneyMethod()
+    {
+        // TODO Уметь ходить в базу, проверять, отправил ли свои реквизиты пользователь
+        return false;
     }
 
     private bool CheckIfReceiveMoneyMethodIsValid(string text)
