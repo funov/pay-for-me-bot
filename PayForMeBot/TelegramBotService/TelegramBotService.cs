@@ -6,7 +6,9 @@ using Telegram.Bot.Types.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PayForMeBot.TelegramBotService.Exceptions;
-using PayForMeBot.TelegramBotService.MessageHandler;
+using PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
+using PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
+using PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler;
 
 namespace PayForMeBot.TelegramBotService;
 
@@ -14,14 +16,19 @@ public class TelegramBotService : ITelegramBotService
 {
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IConfiguration config;
-    private readonly IMessageHandler messageHandler;
+    private readonly IStartStageMessageHandler startHandler;
+    private readonly IMiddleStageMessageHandler middleHandler;
+    private readonly IEndStageMessageHandler endHandler;
 
     public TelegramBotService(ILogger<ReceiptApiClient.ReceiptApiClient> log, IConfiguration config,
-        IMessageHandler messageHandler)
+        IStartStageMessageHandler startHandler, IMiddleStageMessageHandler middleHandler,
+        IEndStageMessageHandler endHandler)
     {
         this.log = log;
         this.config = config;
-        this.messageHandler = messageHandler;
+        this.startHandler = startHandler;
+        this.middleHandler = middleHandler;
+        this.endHandler = endHandler;
     }
 
     public async Task Run()
@@ -59,22 +66,25 @@ public class TelegramBotService : ITelegramBotService
 
     private async Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
     {
+        var currentStage = 0; // get from db
+
+
         switch (update.Message)
         {
             case { Type: MessageType.Text }:
-                await messageHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                // await messageHandler.HandleTextAsync(client, update.Message, cancellationToken);
                 break;
 
             case { Type: MessageType.Photo }:
-                await messageHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
+                // await messageHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
                 break;
         }
 
         switch (update)
         {
             case { Type: UpdateType.CallbackQuery }:
-                if (update.CallbackQuery != null)
-                    await messageHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
+                // if (update.CallbackQuery != null)
+                //     await messageHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
                 break;
         }
     }
