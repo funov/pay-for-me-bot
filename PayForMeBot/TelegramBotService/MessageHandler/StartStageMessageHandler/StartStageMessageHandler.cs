@@ -43,6 +43,8 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         // TODO Подсчитать расходы и скинуть ссылки каждому
         // TODO Добавить ограничение завершения только на лидера группы
         // TODO рефакторинг
+        
+        // TODO если чел в midStage, отправить ему клавиатуру с кнопкой "готово"
 
         switch (message.Text!)
         {
@@ -62,30 +64,54 @@ public class StartStageMessageHandler : IStartStageMessageHandler
             case "Создать команду":
                 // TODO fix it
                 // dbDriver.AddUser(message.Chat.Username!, chatId);
-                var guid = new Guid();
-                log.LogInformation("{username} created team {guid} in {chatId}",
-                    message.Chat.Username, guid, chatId);
+                if (!CheckIfUserInCommand())
+                {
+                    var guid = new Guid();
+                    log.LogInformation("{username} created team {guid} in {chatId}",
+                        message.Chat.Username, guid, chatId);
 
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: $"Id комманды: {guid}",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-                break;
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: $"Id команды: {guid}",
+                        replyMarkup: new ReplyKeyboardRemove(),
+                        cancellationToken: cancellationToken
+                    );
+                    break;
+                }
+                else
+                {
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Ты уже в команде", 
+                        cancellationToken: cancellationToken
+                    );
+                    break;
+                }
             case "Присоединиться к команде":
                 // TODO fix it
                 // dbDriver.AddUser(message.Chat.Username!, chatId);
                 // Скинь гуид
                 // log.LogInformation("{username} joined team {guid} in {chatId}",
                 //     message.Chat.Username, guid, chatId);
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Отправь Id команды",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-                break;
+                if (!CheckIfUserInCommand())
+                {
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Отправь Id команды",
+                        replyMarkup: new ReplyKeyboardRemove(),
+                        cancellationToken: cancellationToken
+                    );
+                    break;
+                }
+                else
+                {
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Ты уже в команде",
+                        cancellationToken: cancellationToken
+                    );
+                    break;
+                }
         }
 
         if (Guid.TryParse(message.Text, out var teamId))
@@ -93,5 +119,12 @@ public class StartStageMessageHandler : IStartStageMessageHandler
             log.LogInformation("{username} joined team {guid} in {chatId}",
                 message.Chat.Username, teamId, chatId);
         }
+    }
+
+    private bool CheckIfUserInCommand()
+    {
+        // TODO проверить, в команде ли пользователь
+
+        return false;
     }
 }

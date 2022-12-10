@@ -47,20 +47,22 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         // db.AddProduct(...);
         log.LogInformation("User added {product} with cost {price} in chat {chatId}",
             dbProduct.Name, dbProduct.Price, chatId);
-
+        
         switch (message.Text!)
         {
             // TODO Подсчитать расходы и скинуть ссылки каждому
             // TODO Добавить ограничение завершения только на лидера группы
             // TODO рефакторинг
+            
+            // TODO когда чел заходит в endStage, удалить клавиатуру с кнопкой готово
 
-            case "Готово":
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Test closing team",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Завершить" }),
-                    cancellationToken: cancellationToken);
-                return;
+            // case "Готово":
+            //     await client.SendTextMessageAsync(
+            //         chatId: chatId,
+            //         text: "Уверен?",
+            //         cancellationToken: cancellationToken);
+            //     return;
+            
             case "/help":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
