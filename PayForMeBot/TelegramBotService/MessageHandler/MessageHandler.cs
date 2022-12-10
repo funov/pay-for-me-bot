@@ -13,10 +13,10 @@ namespace PayForMeBot.TelegramBotService.MessageHandler;
 
 public class MessageHandler : IMessageHandler
 {
-    private static HashSet<string> openTeamFlags = new() {"/start", "Начать"};
+    private static HashSet<string> openTeamFlags = new() {"/start", "start", "Начать"};
     private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
 
-    private static HashSet<string> closeTeamFlags = new() {"/end", "Завершить"};
+    private static HashSet<string> closeTeamFlags = new() {"/end", "end", "Завершить"};
     private static string[] closeTeamLabels = {"Подсчитать расходы и прислать реквизиты"};
 
     private static HashSet<string> helpFlags = new() {"/help", "help", "Помощь"};
@@ -33,6 +33,21 @@ public class MessageHandler : IMessageHandler
         this.receiptApiClient = receiptApiClient;
         this.keyboardMarkup = keyboardMarkup;
         this.dbDriver = dbDriver;
+    }
+
+    private static Product ParseTextToProduct(string text)
+    {
+        var productName = text.Split(" ").Take(text.Length - 1).ToString();
+        if (double.TryParse(text.Split(" ").Last(), out var price))
+            return new Product
+            {
+                Count = 1,
+                Name = productName,
+                Price = price,
+                TotalPrice = price
+            };
+
+        throw new ArgumentException("Неправильная цена / нарушен формат строки");
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -106,7 +121,7 @@ public class MessageHandler : IMessageHandler
 
             case "Подсчитать расходы и прислать реквизиты":
                 // dbDriver.AddUser(message.Chat.Username!, chatId);
-                
+
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Скинь мне реквизиты",
@@ -115,27 +130,6 @@ public class MessageHandler : IMessageHandler
                 );
                 break;
         }
-
-
-        // if (closeTeamFlags.Contains(message.Text!) && message.Chat.Id != teamLeadId)
-        // {
-        //     await client.SendTextMessageAsync(
-        //         chatId: chatId,
-        //         text: "Только лидер команды может завершить работу",
-        //         cancellationToken: cancellationToken
-        //     );
-        // }
-        //
-        // if (closeTeamFlags.Contains(message.Text!) && message.Chat.Id == teamLeadId)
-        // {
-        //     await client.SendTextMessageAsync(
-        //         chatId: chatId,
-        //         text: "Test closing team",
-        //         replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(closeTeamLabels),
-        //         cancellationToken: cancellationToken);
-        //     return;
-        // }
-
 
         // TODO Если прислал свои реквизиты, получает реквизиты остальных
 
