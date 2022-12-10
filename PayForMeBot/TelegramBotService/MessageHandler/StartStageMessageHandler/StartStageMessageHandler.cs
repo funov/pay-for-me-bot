@@ -77,7 +77,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                         cancellationToken: cancellationToken
                     );
 
-                    dbDriver.ChangeUserState(chatId, userTeamId, "middle");
+                    dbDriver.ChangeUserStage(chatId, userTeamId, "middle");
                 }
                 else
                 {
@@ -124,7 +124,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 message.Chat.Username, teamId, chatId);
 
             dbDriver.AddUser(message.Chat.Username!, chatId, teamId, null);
-            dbDriver.ChangeUserState(chatId, teamId, "middle");
+            dbDriver.ChangeUserStage(chatId, teamId, "middle");
 
             await client.SendTextMessageAsync(
                 chatId: chatId,

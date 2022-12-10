@@ -43,10 +43,10 @@ public class DbDriver : IDbDriver
         db.SaveChanges();
     }
 
-    public void ChangeUserState(long userChatId, Guid teamId, string state)
+    public void ChangeUserStage(long userChatId, Guid teamId, string stage)
     {
-        if (!states.Contains(state))
-            throw new InvalidOperationException($"Incorrect state {state}");
+        if (!states.Contains(stage))
+            throw new InvalidOperationException($"Incorrect state {stage}");
 
         var userTable = db.Users.FirstOrDefault(userTable
             => userTable.UserChatId.Equals(userChatId) && userTable.TeamId.Equals(teamId));
@@ -54,9 +54,14 @@ public class DbDriver : IDbDriver
         if (userTable == null)
             throw new InvalidOperationException($"User {userChatId} not exist");
 
-        userTable.Stage = state;
+        userTable.Stage = stage;
         db.SaveChanges();
     }
+
+    public string? GetUserStage(long userChatId, Guid teamId)
+        => db.Users
+            .FirstOrDefault(x => x.UserChatId == userChatId && x.TeamId == teamId)?
+            .Stage;
 
     public double GetUserTotalPriceByChatId(long userChatId, Guid teamId)
         => GetProductBindingsByUserChatId(userChatId, teamId)
@@ -64,7 +69,7 @@ public class DbDriver : IDbDriver
             .Select(productId => GetProductByProductId(productId).Price)
             .Sum();
 
-    private IEnumerable<UserProductTable> GetProductBindingsByUserChatId(long userChatId, Guid teamId)
+    public IEnumerable<UserProductTable> GetProductBindingsByUserChatId(long userChatId, Guid teamId)
         => db.Bindings
             .Where(userProductTable
                 => userProductTable.UserChatId.Equals(userChatId) && userProductTable.TeamId.Equals(teamId));

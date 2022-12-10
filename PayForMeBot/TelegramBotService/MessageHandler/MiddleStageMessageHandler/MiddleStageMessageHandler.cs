@@ -50,12 +50,12 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         log.LogInformation("User added {product} with cost {price} in chat {chatId}",
             dbProduct.Name, dbProduct.Price, chatId);
-        
+
         switch (message.Text!)
         {
             // TODO Добавить ограничение завершения только на лидера группы
             // TODO рефакторинг
-            
+
             // TODO когда чел заходит в endStage, удалить клавиатуру с кнопкой готово
 
             case "Готово":
@@ -76,7 +76,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                     chatId: chatId,
                     text: "Введите СБП линк",
                     cancellationToken: cancellationToken);
-                dbDriver.ChangeUserState(chatId, teamId, "end");
+                dbDriver.ChangeUserStage(chatId, teamId, "end");
                 return;
             case "Нет":
                 await client.SendTextMessageAsync(

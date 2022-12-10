@@ -5,6 +5,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using PayForMeBot.DbDriver;
 using PayForMeBot.TelegramBotService.Exceptions;
 using PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
@@ -19,16 +20,18 @@ public class TelegramBotService : ITelegramBotService
     private readonly IStartStageMessageHandler startHandler;
     private readonly IMiddleStageMessageHandler middleHandler;
     private readonly IEndStageMessageHandler endHandler;
+    private readonly IDbDriver dbDriver;
 
     public TelegramBotService(ILogger<ReceiptApiClient.ReceiptApiClient> log, IConfiguration config,
         IStartStageMessageHandler startHandler, IMiddleStageMessageHandler middleHandler,
-        IEndStageMessageHandler endHandler)
+        IEndStageMessageHandler endHandler, IDbDriver dbDriver)
     {
         this.log = log;
         this.config = config;
         this.startHandler = startHandler;
         this.middleHandler = middleHandler;
         this.endHandler = endHandler;
+        this.dbDriver = dbDriver;
     }
 
     public async Task Run()
@@ -66,25 +69,52 @@ public class TelegramBotService : ITelegramBotService
 
     private async Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
     {
-        var currentStage = 0; // get from db
+        var chatId = update.Message!.Chat.Id;
+        var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+        var currentStage = dbDriver.GetUserStage(chatId, teamId)!;
 
+        // TODO refactoring :(
 
-        switch (update.Message)
+        switch (currentStage)
         {
-            case { Type: MessageType.Text }:
-                // await messageHandler.HandleTextAsync(client, update.Message, cancellationToken);
-                break;
+            case "start":
+                switch (update.Message)
+                {
+                    case { Type: MessageType.Text }:
+                        await startHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                        break;
+                }
 
-            case { Type: MessageType.Photo }:
-                // await messageHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
                 break;
-        }
+            case "middle":
+                switch (update.Message)
+                {
+                    case { Type: MessageType.Text }:
+                        await middleHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                        break;
 
-        switch (update)
-        {
-            case { Type: UpdateType.CallbackQuery }:
-                // if (update.CallbackQuery != null)
-                //     await messageHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
+                    case { Type: MessageType.Photo }:
+                        await middleHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
+                        break;
+                }
+
+                switch (update)
+                {
+                    case { Type: UpdateType.CallbackQuery }:
+                        if (update.CallbackQuery != null)
+                            await middleHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
+                        break;
+                }
+
+                break;
+            case "end":
+                switch (update.Message)
+                {
+                    case { Type: MessageType.Text }:
+                        await endHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                        break;
+                }
+
                 break;
         }
     }
