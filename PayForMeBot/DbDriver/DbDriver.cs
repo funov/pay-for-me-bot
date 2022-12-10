@@ -10,7 +10,7 @@ public class DbDriver : IDbDriver
 
     public DbDriver(IConfiguration config) => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
-    public void AddUser(string userTgId, long teamId, string? spbLink)
+    public void AddUser(string userTgId, Guid teamId, string? spbLink)
     {
         var user = new UserTable { UserTelegramId = userTgId, TeamId = teamId, SbpLink = spbLink };
 
@@ -18,38 +18,35 @@ public class DbDriver : IDbDriver
         db.SaveChanges();
     }
 
-    public long GetTeamIdByUserTgId(string userTgId)
-    {
-        var user = db.Users.FirstOrDefault(userTable => userTable.UserTelegramId!.Equals(userTgId));
-        return user!.TeamId;
-    }
+    public Guid GetTeamIdByUserTelegramId(string userTelegramId)
+        => db.Users
+            .FirstOrDefault(userTable => userTable.UserTelegramId!.Equals(userTelegramId))
+            !.TeamId;
 
-    public void AddSbpLink(string userTgId, Guid teamId, string? sbpLink)
+    public void AddSbpLink(string userTelegramId, Guid teamId, string? sbpLink)
     {
         var userTable = db.Users.FirstOrDefault(userTable
-            => userTable.UserTelegramId!.Equals(userTgId) && userTable.TeamId.Equals(teamId));
+            => userTable.UserTelegramId!.Equals(userTelegramId) && userTable.TeamId.Equals(teamId));
 
-        if (userTable != null)
-            userTable.SbpLink = sbpLink;
+        if (userTable == null)
+            throw new InvalidOperationException($"User {userTelegramId} not exist");
 
+        userTable.SbpLink = sbpLink;
         db.SaveChanges();
     }
 
-    public double GetUserTotalPriceByTgId(string userTgId, Guid teamId)
-        => GetProductBindingsByUserTgId(userTgId, teamId)
+    public double GetUserTotalPriceByTelegramId(string userTelegramId, Guid teamId)
+        => GetProductBindingsByUserTgId(userTelegramId, teamId)
             .Select(s => s.ProductId)
             .Select(productId => GetProductByProductId(productId).Price)
             .Sum();
 
-    public UserProductTable[] GetProductBindingsByUserTgId(string userTgId, Guid teamId)
-    {
-        return db.Bindings!
+    private IEnumerable<UserProductTable> GetProductBindingsByUserTgId(string userTgId, Guid teamId)
+        => db.Bindings
             .Where(userProductTable
-                => userProductTable.UserTelegramId!.Equals(userTgId) && userProductTable.TeamId.Equals(teamId))
-            .ToArray();
-    }
+                => userProductTable.UserTelegramId!.Equals(userTgId) && userProductTable.TeamId.Equals(teamId));
 
-    public Product GetProductByProductId(Guid id)
+    private Product GetProductByProductId(Guid id)
     {
         var product = db.Products.FirstOrDefault(productTable => productTable.TeamId.Equals(id));
 
@@ -62,7 +59,7 @@ public class DbDriver : IDbDriver
         };
     }
 
-    public void DeleteUserProductBinding(string? userTelegramId, long teamId, Guid productId)
+    public void DeleteUserProductBinding(string? userTelegramId, Guid teamId, Guid productId)
     {
         var binding = db.Bindings
             .FirstOrDefault(userProductTable
@@ -72,14 +69,10 @@ public class DbDriver : IDbDriver
         db.SaveChanges();
     }
 
-    public string? GetSbpLinkByUserTgId(string userTgId)
-    {
-        var user = db.Users.FirstOrDefault(userTable => userTable.UserTelegramId!.Equals(userTgId));
+    public string? GetSbpLinkByUserTelegramId(string userTelegramId)
+        => db.Users.FirstOrDefault(userTable => userTable.UserTelegramId!.Equals(userTelegramId))?.SbpLink;
 
-        return user?.SbpLink;
-    }
-
-    public void AddProduct(Guid id, Product productModel, Guid receiptId, string buyerTelegramId, long teamId)
+    public void AddProduct(Guid id, Product productModel, Guid receiptId, string buyerTelegramId, Guid teamId)
     {
         var productTable = new ProductTable
         {
@@ -97,7 +90,7 @@ public class DbDriver : IDbDriver
         db.SaveChanges();
     }
 
-    public void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, string buyerTelegramId, long teamId)
+    public void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, string buyerTelegramId, Guid teamId)
     {
         for (var i = 0; i < ids.Length; i++)
         {
@@ -105,7 +98,7 @@ public class DbDriver : IDbDriver
         }
     }
 
-    public void AddUserProductBinding(string? userTelegramId, long teamId, Guid productId)
+    public void AddUserProductBinding(string? userTelegramId, Guid teamId, Guid productId)
     {
         var binding = new UserProductTable { UserTelegramId = userTelegramId, ProductId = productId, TeamId = teamId };
         db.Bindings.Add(binding);
