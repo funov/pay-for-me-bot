@@ -12,7 +12,7 @@ public class DbDriver : IDbDriver
 
     public void AddUser(string userTgId, long teamId, string? spbLink)
     {
-        var user = new UserTable { TelegramId = userTgId, TeamId = teamId, SbpLink = spbLink };
+        var user = new UserTable { UserTelegramId = userTgId, TeamId = teamId, SbpLink = spbLink };
 
         db.Users.Add(user);
         db.SaveChanges();
@@ -20,14 +20,14 @@ public class DbDriver : IDbDriver
 
     public long GetTeamIdByUserTgId(string userTgId)
     {
-        var user = db.Users.FirstOrDefault(userTable => userTable.TelegramId!.Equals(userTgId));
+        var user = db.Users.FirstOrDefault(userTable => userTable.UserTelegramId!.Equals(userTgId));
         return user!.TeamId;
     }
 
     public void AddSbpLink(string userTgId, Guid teamId, string? sbpLink)
     {
         var user = db.Users.FirstOrDefault(userTable
-            => userTable.TelegramId!.Equals(userTgId) && userTable.TeamId.Equals(teamId));
+            => userTable.UserTelegramId!.Equals(userTgId) && userTable.TeamId.Equals(teamId));
 
         if (user != null)
             user.SbpLink = sbpLink;
@@ -79,7 +79,7 @@ public class DbDriver : IDbDriver
 
     public string? GetSbpLinkByUserTgId(string userTgId)
     {
-        var user = db.Users.FirstOrDefault(userTable => userTable.TelegramId!.Equals(userTgId));
+        var user = db.Users.FirstOrDefault(userTable => userTable.UserTelegramId!.Equals(userTgId));
 
         return user?.SbpLink;
     }

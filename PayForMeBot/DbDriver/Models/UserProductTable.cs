@@ -4,8 +4,9 @@ namespace PayForMeBot.DbDriver.Models;
 
 public class UserProductTable
 {
-    [Key] 
-    public string? UserTelegramId { get; set; }
+    [Key]
+    public Guid Id { get; set; }
+    public string? UserTelegramId { get; set; } // chatId
     public Guid ProductId { get; set; }
-    public long TeamId { get; set; }
+    public Guid TeamId { get; set; }
 }

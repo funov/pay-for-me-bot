@@ -1,9 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace PayForMeBot.DbDriver.Models;
 
 public class UserTable
 {
-    public int UserTableId { get; set; }
-    public string? TelegramId { get; set; }
-    public long TeamId { get; set; }
+    [Key]
+    public string? UserTelegramId { get; set; } // chatId
+    public Guid TeamId { get; set; }
     public string? SbpLink { get; set; }
 }
