@@ -26,25 +26,20 @@ public class DbDriver : IDbDriver
 
     public void AddSbpLink(string userTgId, Guid teamId, string? sbpLink)
     {
-        var user = db.Users.FirstOrDefault(userTable
+        var userTable = db.Users.FirstOrDefault(userTable
             => userTable.UserTelegramId!.Equals(userTgId) && userTable.TeamId.Equals(teamId));
 
-        if (user != null)
-            user.SbpLink = sbpLink;
+        if (userTable != null)
+            userTable.SbpLink = sbpLink;
 
         db.SaveChanges();
     }
 
     public double GetUserTotalPriceByTgId(string userTgId, Guid teamId)
-    {
-        var productsId = GetProductBindingsByUserTgId(userTgId, teamId)
-            .Select(s => s.ProductId);
-
-        var productPrices = productsId
-            .Select(productId => GetProductByProductId(productId).Price);
-
-        return productPrices.Sum();
-    }
+        => GetProductBindingsByUserTgId(userTgId, teamId)
+            .Select(s => s.ProductId)
+            .Select(productId => GetProductByProductId(productId).Price)
+            .Sum();
 
     public UserProductTable[] GetProductBindingsByUserTgId(string userTgId, Guid teamId)
     {
