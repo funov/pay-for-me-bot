@@ -13,8 +13,13 @@ namespace PayForMeBot.TelegramBotService.MessageHandler;
 
 public class MessageHandler : IMessageHandler
 {
-    private static HashSet<string> teamSelectionFlags = new() { "/start", "Завершить" };
-    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+    private static HashSet<string> openTeamFlags = new() {"/start", "Начать"};
+    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
+
+    private static HashSet<string> closeTeamFlags = new() {"/end", "Завершить"};
+    private static string[] closeTeamLabels = {"Подсчитать расходы и прислать реквизиты", "Отменить"};
+
+    private static long teamLeadId;
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
@@ -36,11 +41,11 @@ public class MessageHandler : IMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
-        if (teamSelectionFlags.Contains(message.Text!))
+        if (openTeamFlags.Contains(message.Text!))
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: "Test",
+                text: "Test opening team",
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                 cancellationToken: cancellationToken);
             return;
@@ -72,6 +77,54 @@ public class MessageHandler : IMessageHandler
                 );
                 break;
         }
+
+        // TODO Добавить ограничение завершения только на лидера группы
+        // TODO рефакторинг
+
+        if (closeTeamFlags.Contains(message.Text!) && message.Chat.Id != teamLeadId)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Только лидер команды может завершить работу",
+                cancellationToken: cancellationToken
+            );
+        }
+
+        if (closeTeamFlags.Contains(message.Text!) && message.Chat.Id == teamLeadId)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Test closing team",
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(closeTeamLabels),
+                cancellationToken: cancellationToken);
+            return;
+        }
+
+        switch (message.Text!)
+        {
+            // TODO Подсчитать расходы и скинуть ссылки каждому
+
+            case "Подсчитать расходы и прислать реквизиты":
+                // dbDriver.AddUser(message.Chat.Username!, chatId);
+
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Завершаюсь",
+                    replyMarkup: new ReplyKeyboardRemove(),
+                    cancellationToken: cancellationToken
+                );
+
+                break;
+            case "Отменить":
+
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Отмена",
+                    replyMarkup: new ReplyKeyboardRemove(),
+                    cancellationToken: cancellationToken
+                );
+                break;
+        }
     }
 
     public async Task HandlePhotoAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -95,7 +148,7 @@ public class MessageHandler : IMessageHandler
 
         if (fileInfo.FileSize != null)
         {
-            using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
+            using var stream = new MemoryStream((int) fileInfo.FileSize.Value);
             await client.DownloadFileAsync(filePath, stream, cancellationToken);
             encryptedContent = stream.ToArray();
         }
