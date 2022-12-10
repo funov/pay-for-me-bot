@@ -17,9 +17,9 @@ public class MessageHandler : IMessageHandler
     private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
 
     private static HashSet<string> closeTeamFlags = new() {"/end", "Завершить"};
-    private static string[] closeTeamLabels = {"Подсчитать расходы и прислать реквизиты", "Отменить"};
+    private static string[] closeTeamLabels = {"Подсчитать расходы и прислать реквизиты"};
 
-    private static long teamLeadId;
+    private static HashSet<string> helpFlags = new() {"/help", "help", "Помощь"};
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
@@ -45,15 +45,40 @@ public class MessageHandler : IMessageHandler
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: "Test opening team",
+                text: GetHelpMessage(),
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                 cancellationToken: cancellationToken);
             return;
         }
 
+        if (closeTeamFlags.Contains(message.Text!))
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Test closing team / Cкинь свои реквизиты",
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(closeTeamLabels),
+                cancellationToken: cancellationToken);
+            return;
+        }
+
+
+        if (helpFlags.Contains(message.Text!))
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: GetHelpMessage(),
+                cancellationToken: cancellationToken);
+        }
+
         switch (message.Text!)
         {
             // TODO Брать их из массива (teamSelectionLabels)
+
+            // TODO Подсчитать расходы и скинуть ссылки каждому
+
+            // TODO Добавить ограничение завершения только на лидера группы
+
+            // TODO рефакторинг
 
             case "Создать команду":
                 // TODO fix it
@@ -78,54 +103,49 @@ public class MessageHandler : IMessageHandler
                     cancellationToken: cancellationToken
                 );
                 break;
-        }
-
-        // TODO Добавить ограничение завершения только на лидера группы
-        // TODO рефакторинг
-
-        if (closeTeamFlags.Contains(message.Text!) && message.Chat.Id != teamLeadId)
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Только лидер команды может завершить работу",
-                cancellationToken: cancellationToken
-            );
-        }
-
-        if (closeTeamFlags.Contains(message.Text!) && message.Chat.Id == teamLeadId)
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Test closing team",
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(closeTeamLabels),
-                cancellationToken: cancellationToken);
-            return;
-        }
-
-        switch (message.Text!)
-        {
-            // TODO Подсчитать расходы и скинуть ссылки каждому
 
             case "Подсчитать расходы и прислать реквизиты":
                 // dbDriver.AddUser(message.Chat.Username!, chatId);
-
+                
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Завершаюсь",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-
-                break;
-            case "Отменить":
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Отмена",
+                    text: "Скинь мне реквизиты",
                     replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken
                 );
                 break;
+        }
+
+
+        // if (closeTeamFlags.Contains(message.Text!) && message.Chat.Id != teamLeadId)
+        // {
+        //     await client.SendTextMessageAsync(
+        //         chatId: chatId,
+        //         text: "Только лидер команды может завершить работу",
+        //         cancellationToken: cancellationToken
+        //     );
+        // }
+        //
+        // if (closeTeamFlags.Contains(message.Text!) && message.Chat.Id == teamLeadId)
+        // {
+        //     await client.SendTextMessageAsync(
+        //         chatId: chatId,
+        //         text: "Test closing team",
+        //         replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(closeTeamLabels),
+        //         cancellationToken: cancellationToken);
+        //     return;
+        // }
+
+
+        // TODO Если прислал свои реквизиты, получает реквизиты остальных
+
+        if (!true)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Держи реквизиты тех, кому ты должен",
+                cancellationToken: cancellationToken
+            );
         }
     }
 
@@ -241,7 +261,7 @@ public class MessageHandler : IMessageHandler
             if (inlineKeyboard[2].Text == "🛒")
             {
                 log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
-                
+
                 // TODO fix it
                 // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
                 // dbDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
@@ -249,7 +269,7 @@ public class MessageHandler : IMessageHandler
             else
             {
                 log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
-                
+
                 // TODO fix it
                 // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
                 // dbDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
