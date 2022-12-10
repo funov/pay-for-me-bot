@@ -1,7 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using PayForMeBot.DbDriver;
-using PayForMeBot.ReceiptApiClient;
-using PayForMeBot.ReceiptApiClient.Models;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -11,13 +9,9 @@ namespace PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler
 
 public class StartStageMessageHandler : IStartStageMessageHandler
 {
-    private static HashSet<string> openTeamFlags = new() {"/start", "start", "Начать"};
-    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
-
-    private static HashSet<string> helpFlags = new() {"/help", "help", "Помощь"};
+    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
-    private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IDbDriver dbDriver;
 
@@ -31,11 +25,10 @@ public class StartStageMessageHandler : IStartStageMessageHandler
            "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
            "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
-    public StartStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient,
-        IKeyboardMarkup keyboardMarkup, IDbDriver dbDriver)
+    public StartStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IKeyboardMarkup keyboardMarkup, 
+        IDbDriver dbDriver)
     {
         this.log = log;
-        this.receiptApiClient = receiptApiClient;
         this.keyboardMarkup = keyboardMarkup;
         this.dbDriver = dbDriver;
     }
@@ -45,41 +38,27 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         var chatId = message.Chat.Id;
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
-
-        if (openTeamFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Создай или присоединись к команде!",
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
-                cancellationToken: cancellationToken);
-            return;
-        }
-
-        if (helpFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: HelpMessage,
-                cancellationToken: cancellationToken);
-        }
-
-        if (Guid.TryParse(message.Text, out var teamId))
-        {
-            log.LogInformation("{username} joined team {guid} in {chatId}",
-                message.Chat.Username, teamId, chatId);
-        }
+        
+        // TODO Брать их из массива (teamSelectionLabels)
+        // TODO Подсчитать расходы и скинуть ссылки каждому
+        // TODO Добавить ограничение завершения только на лидера группы
+        // TODO рефакторинг
 
         switch (message.Text!)
         {
-            // TODO Брать их из массива (teamSelectionLabels)
-
-            // TODO Подсчитать расходы и скинуть ссылки каждому
-
-            // TODO Добавить ограничение завершения только на лидера группы
-
-            // TODO рефакторинг
-
+            case "/start":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Создай или присоединись к команде!",
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
+                    cancellationToken: cancellationToken);
+                break;
+            case "/help":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: HelpMessage,
+                    cancellationToken: cancellationToken);
+                break;
             case "Создать команду":
                 // TODO fix it
                 // dbDriver.AddUser(message.Chat.Username!, chatId);
@@ -94,7 +73,6 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     cancellationToken: cancellationToken
                 );
                 break;
-
             case "Присоединиться к команде":
                 // TODO fix it
                 // dbDriver.AddUser(message.Chat.Username!, chatId);
@@ -108,6 +86,12 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     cancellationToken: cancellationToken
                 );
                 break;
+        }
+
+        if (Guid.TryParse(message.Text, out var teamId))
+        {
+            log.LogInformation("{username} joined team {guid} in {chatId}",
+                message.Chat.Username, teamId, chatId);
         }
     }
 }

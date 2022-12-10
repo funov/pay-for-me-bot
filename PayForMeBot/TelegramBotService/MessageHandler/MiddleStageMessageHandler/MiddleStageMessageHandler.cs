@@ -7,16 +7,11 @@ using PayForMeBot.ReceiptApiClient.Models;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
 
 public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 {
-    private static HashSet<string> closeTeamFlags = new() { "/done", "done", "Готово" };
-    private static string[] closeTeamLabels = { "Подсчитать расходы и прислать реквизиты" };
-    private static HashSet<string> helpFlags = new() { "/help", "help", "Помощь" };
-    
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
            "2) Далее каждого попросят ввести номер телефона и ссылку Тинькофф (если есть) для " +
@@ -26,7 +21,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
            "за этот товар, если все хорошо, ты увидишь «✅», для отмены нажми еще раз на эту кнопку. 🤓🤓🤓\n\n" +
            "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
            "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
-    
+
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
@@ -48,41 +43,31 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
         var dbProduct = ParseTextToProduct(message.Text!);
-        
+
         // db.AddProduct(...);
         log.LogInformation("User added {product} with cost {price} in chat {chatId}",
             dbProduct.Name, dbProduct.Price, chatId);
-        
-        if (closeTeamFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Test closing team",
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(closeTeamLabels),
-                cancellationToken: cancellationToken);
-            return;
-        }
-        
-        if (helpFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: HelpMessage,
-                cancellationToken: cancellationToken);
-            return;
-        }
-        
+
         switch (message.Text!)
         {
-            // TODO Брать их из массива (teamSelectionLabels)
-
             // TODO Подсчитать расходы и скинуть ссылки каждому
-
             // TODO Добавить ограничение завершения только на лидера группы
-
             // TODO рефакторинг
-        }
 
+            case "Готово":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Test closing team",
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Завершить" }),
+                    cancellationToken: cancellationToken);
+                return;
+            case "/help":
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: HelpMessage,
+                    cancellationToken: cancellationToken);
+                return;
+        }
     }
 
     public async Task HandlePhotoAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -223,7 +208,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         else
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
-    
+
     private static Product ParseTextToProduct(string text)
     {
         var productName = text.Split(" ").Take(text.Length - 1).ToString();
