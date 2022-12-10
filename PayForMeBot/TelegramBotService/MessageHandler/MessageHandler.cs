@@ -51,7 +51,8 @@ public class MessageHandler : IMessageHandler
             // TODO Брать их из массива (teamSelectionLabels)
 
             case "Создать команду":
-                dbDriver.AddUser(message.Chat.Username!, chatId);
+                // TODO fix it
+                // dbDriver.AddUser(message.Chat.Username!, chatId);
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
@@ -62,7 +63,8 @@ public class MessageHandler : IMessageHandler
 
                 break;
             case "Присоединиться к команде":
-                dbDriver.AddUser(message.Chat.Username!, chatId);
+                // TODO fix it
+                // dbDriver.AddUser(message.Chat.Username!, chatId);
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
@@ -117,7 +119,7 @@ public class MessageHandler : IMessageHandler
 
             if (products != null)
             {
-                await SendProductsMessages(client, chatId, products, cancellationToken, message);
+                await SendProductsMessages(client, chatId, products, message.Chat.Username, cancellationToken);
                 return;
             }
         }
@@ -139,7 +141,7 @@ public class MessageHandler : IMessageHandler
     }
 
     private async Task SendProductsMessages(ITelegramBotClient client, long chatId, IEnumerable<Product> products,
-        CancellationToken cancellationToken, Message message)
+        string telegramUserName, CancellationToken cancellationToken)
     {
         foreach (var product in products)
         {
@@ -153,7 +155,8 @@ public class MessageHandler : IMessageHandler
                 $"{product.Count} шт.",
                 "🛒");
 
-            dbDriver.AddProduct(guid, product, guidReceipt, message.Chat.Username!, message.Chat.Id);
+            // TODO fix it
+            // dbDriver.AddProduct(guid, product, guidReceipt, telegramUserName, message.Chat.Id);
 
             log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
 
@@ -185,14 +188,18 @@ public class MessageHandler : IMessageHandler
             if (inlineKeyboard[2].Text == "🛒")
             {
                 log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
-                var teamId = dbDriver.GetTeamIdByUserTgId(callback.From.Username!);
-                dbDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
+                
+                // TODO fix it
+                // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
+                // dbDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
             }
             else
             {
                 log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
-                var teamId = dbDriver.GetTeamIdByUserTgId(callback.From.Username!);
-                dbDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
+                
+                // TODO fix it
+                // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
+                // dbDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
             }
 
             await client.EditMessageTextAsync(

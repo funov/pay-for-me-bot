@@ -4,13 +4,13 @@ namespace PayForMeBot.DbDriver;
 
 public interface IDbDriver
 {
-    void AddUser(string userTgId, long teamId, string? spbLink = null);
-    long GetTeamIdByUserTgId(string userTgId);
-    void AddSbpLink(string userTgId, Guid teamId, string? sbpLink);
-    void AddProduct(Guid id, Product productModel, Guid receiptId, string buyerTelegramId, long teamId);
-    void AddUserProductBinding(string? userTelegramId, long teamId, Guid productId);
-    void DeleteUserProductBinding(string? userTelegramId, long teamId, Guid productId);
-    string? GetSbpLinkByUserTgId(string userTgId);
-    double GetUserTotalPriceByTgId(string userTgId, Guid teamId);
-    void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, string buyerTelegramId, long teamId);
+    void AddUser(string userTelegramId, Guid teamId, string? spbLink = null);
+    Guid GetTeamIdByUserTelegramId(string userTelegramId);
+    void AddSbpLink(string userTelegramId, Guid teamId, string? sbpLink);
+    void AddProduct(Guid id, Product productModel, Guid receiptId, string buyerTelegramId, Guid teamId);
+    void AddUserProductBinding(string? userTelegramId, Guid teamId, Guid productId);
+    void DeleteUserProductBinding(string? userTelegramId, Guid teamId, Guid productId);
+    string? GetSbpLinkByUserTelegramId(string userTelegramId);
+    double GetUserTotalPriceByTelegramId(string userTelegramId, Guid teamId);
+    void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, string buyerTelegramId, Guid teamId);
 }
