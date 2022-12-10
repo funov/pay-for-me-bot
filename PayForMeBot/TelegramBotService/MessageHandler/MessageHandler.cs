@@ -13,8 +13,13 @@ namespace PayForMeBot.TelegramBotService.MessageHandler;
 
 public class MessageHandler : IMessageHandler
 {
-    private static HashSet<string> teamSelectionFlags = new() { "/start", "Завершить" };
-    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+    private static HashSet<string> openTeamFlags = new() {"/start", "start", "Начать"};
+    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
+
+    private static HashSet<string> closeTeamFlags = new() {"/end", "end", "Завершить"};
+    private static string[] closeTeamLabels = {"Подсчитать расходы и прислать реквизиты"};
+
+    private static HashSet<string> helpFlags = new() {"/help", "help", "Помощь"};
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
@@ -40,25 +45,65 @@ public class MessageHandler : IMessageHandler
         this.dbDriver = dbDriver;
     }
 
+    private static Product ParseTextToProduct(string text)
+    {
+        var productName = text.Split(" ").Take(text.Length - 1).ToString();
+        if (double.TryParse(text.Split(" ").Last(), out var price))
+            return new Product
+            {
+                Count = 1,
+                Name = productName,
+                Price = price,
+                TotalPrice = price
+            };
+
+        throw new ArgumentException("Неправильная цена / нарушен формат строки");
+    }
+
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
     {
         var chatId = message.Chat.Id;
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
-        if (teamSelectionFlags.Contains(message.Text!))
+        if (openTeamFlags.Contains(message.Text!))
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: "Test",
+                text: string.Empty,
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                 cancellationToken: cancellationToken);
             return;
         }
 
+        if (closeTeamFlags.Contains(message.Text!))
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Test closing team / Cкинь свои реквизиты",
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(closeTeamLabels),
+                cancellationToken: cancellationToken);
+            return;
+        }
+
+
+        if (helpFlags.Contains(message.Text!))
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: HelpMessage,
+                cancellationToken: cancellationToken);
+        }
+
         switch (message.Text!)
         {
             // TODO Брать их из массива (teamSelectionLabels)
+
+            // TODO Подсчитать расходы и скинуть ссылки каждому
+
+            // TODO Добавить ограничение завершения только на лидера группы
+
+            // TODO рефакторинг
 
             case "Создать команду":
                 // TODO fix it
@@ -83,13 +128,28 @@ public class MessageHandler : IMessageHandler
                     cancellationToken: cancellationToken
                 );
                 break;
-            case "/help":
+
+            case "Подсчитать расходы и прислать реквизиты":
+                // dbDriver.AddUser(message.Chat.Username!, chatId);
+
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: HelpMessage,
+                    text: "Скинь мне реквизиты",
+                    replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken
                 );
                 break;
+        }
+
+        // TODO Если прислал свои реквизиты, получает реквизиты остальных
+
+        if (!true)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Держи реквизиты тех, кому ты должен",
+                cancellationToken: cancellationToken
+            );
         }
     }
 
@@ -166,6 +226,7 @@ public class MessageHandler : IMessageHandler
         {
             var text = $"{product.Name}";
             var guid = Guid.NewGuid();
+            var guidReceipt = Guid.NewGuid();
 
             var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
                 guid,
