@@ -13,12 +13,6 @@ namespace PayForMeBot.TelegramBotService.MessageHandler;
 
 public class MessageHandler : IMessageHandler
 {
-    private static HashSet<string> openTeamFlags = new() { "/start", "start", "Начать" };
-    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
-
-    private static HashSet<string> closeTeamFlags = new() { "/end", "end", "Завершить" };
-    private static string[] closeTeamLabels = { "Подсчитать расходы и прислать реквизиты" };
-
     private static HashSet<string> helpFlags = new() { "/help", "help", "Помощь" };
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
@@ -45,55 +39,11 @@ public class MessageHandler : IMessageHandler
         this.dbDriver = dbDriver;
     }
 
-    private static Product ParseTextToProduct(string text)
-    {
-        var productName = text.Split(" ").Take(text.Length - 1).ToString();
-        if (double.TryParse(text.Split(" ").Last(), out var price))
-            return new Product
-            {
-                Count = 1,
-                Name = productName,
-                Price = price,
-                TotalPrice = price
-            };
-
-        throw new ArgumentException("Неправильная цена / нарушен формат строки");
-    }
-
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
     {
         var chatId = message.Chat.Id;
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
-
-        if (openTeamFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Создай или присоединись к команде!",
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
-                cancellationToken: cancellationToken);
-            return;
-        }
-
-        if (closeTeamFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Test closing team / Cкинь свои реквизиты",
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(closeTeamLabels),
-                cancellationToken: cancellationToken);
-            return;
-        }
-
-
-        if (helpFlags.Contains(message.Text!))
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: HelpMessage,
-                cancellationToken: cancellationToken);
-        }
 
         switch (message.Text!)
         {
@@ -104,43 +54,7 @@ public class MessageHandler : IMessageHandler
             // TODO Добавить ограничение завершения только на лидера группы
 
             // TODO рефакторинг
-
-            case "Создать команду":
-                // TODO fix it
-                // dbDriver.AddUser(message.Chat.Username!, chatId);
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Создана",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-
-                break;
-            case "Присоединиться к команде":
-                // TODO fix it
-                // dbDriver.AddUser(message.Chat.Username!, chatId);
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Присоединяюсь!",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-                break;
-
-            case "Подсчитать расходы и прислать реквизиты":
-                // dbDriver.AddUser(message.Chat.Username!, chatId);
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Скинь мне реквизиты",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-                break;
         }
-
         // TODO Если прислал свои реквизиты, получает реквизиты остальных
 
         if (!true)
@@ -152,6 +66,8 @@ public class MessageHandler : IMessageHandler
             );
         }
     }
+    
+    
 
     public Task HandlePhotoAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
     {
