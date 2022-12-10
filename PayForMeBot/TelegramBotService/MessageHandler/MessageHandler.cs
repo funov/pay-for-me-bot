@@ -70,7 +70,7 @@ public class MessageHandler : IMessageHandler
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: string.Empty,
+                text: "Создай или присоединись к команде!",
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                 cancellationToken: cancellationToken);
             return;
