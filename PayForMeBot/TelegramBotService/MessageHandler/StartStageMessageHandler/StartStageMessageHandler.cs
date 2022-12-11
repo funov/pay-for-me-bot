@@ -9,7 +9,7 @@ namespace PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler
 
 public class StartStageMessageHandler : IStartStageMessageHandler
 {
-    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
+    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IKeyboardMarkup keyboardMarkup;
@@ -40,10 +40,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
         // TODO Брать их из массива (teamSelectionLabels)
-        // TODO Подсчитать расходы и скинуть ссылки каждому
-        // TODO Добавить ограничение завершения только на лидера группы
-        // TODO рефакторинг
-        // TODO если чел в midStage, отправить ему клавиатуру с кнопкой "готово"
+        // TODO Рефакторинг
 
         switch (message.Text!)
         {
@@ -136,6 +133,27 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken
             );
+
+            var pastProducts = dbDriver.GetProductsByTeamId(teamId);
+
+            foreach (var pastProduct in pastProducts)
+            {
+                var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
+                    pastProduct.Id,
+                    $"{pastProduct.TotalPrice} р.",
+                    $"{pastProduct.Count} шт.",
+                    "🛒");
+
+                log.LogInformation("Send product {ProductId} inline button to chat {ChatId}",
+                    pastProduct.Id, chatId);
+
+                await client.SendTextMessageAsync(
+                    chatId,
+                    pastProduct.Name!,
+                    replyMarkup: inlineKeyboardMarkup,
+                    disableNotification: true,
+                    cancellationToken: cancellationToken);
+            }
         }
     }
 

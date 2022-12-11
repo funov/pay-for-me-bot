@@ -91,6 +91,10 @@ public class DbDriver : IDbDriver
         };
     }
 
+    public IEnumerable<ProductTable> GetProductsByTeamId(Guid teamId)
+        => db.Products
+            .Where(productTable => productTable.TeamId == teamId);
+
     public void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId)
     {
         var binding = db.Bindings

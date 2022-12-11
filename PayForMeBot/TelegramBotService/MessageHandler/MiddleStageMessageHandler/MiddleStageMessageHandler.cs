@@ -42,19 +42,18 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
         var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-        
+
         switch (message.Text!)
         {
             // TODO Добавить ограничение завершения только на лидера группы
-            // TODO рефакторинг
-
+            // TODO Рефакторинг
             // TODO когда чел заходит в endStage, удалить клавиатуру с кнопкой готово
 
             case "Готово":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Ты уверен, что все участники команды выбрали продукты?",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Да", "Нет"}),
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Да", "Нет" }),
                     cancellationToken: cancellationToken);
                 return;
             case "/help":
@@ -80,10 +79,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         if (Product.TryParse(message.Text!, out var dbProduct))
         {
-            // db.AddProduct(...);
             var productGuid = Guid.NewGuid();
-            // TODO Сделать Product.TryParse с out
-
 
             dbDriver.AddProduct(productGuid, dbProduct, productGuid, chatId, teamId);
 
@@ -131,7 +127,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         if (fileInfo.FileSize != null)
         {
-            using var stream = new MemoryStream((int) fileInfo.FileSize.Value);
+            using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
             await client.DownloadFileAsync(filePath, stream, cancellationToken);
             encryptedContent = stream.ToArray();
         }
@@ -190,8 +186,9 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 $"{product.Count} шт.",
                 "🛒");
 
-            // TODO fix it
-            // dbDriver.AddProduct(guid, product, receiptGuid, userName, message.Chat.Id);
+            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+
+            dbDriver.AddProduct(guid, product, receiptGuid, chatId, teamId);
 
             log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
 
@@ -207,7 +204,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     public async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback,
         CancellationToken cancellationToken)
     {
-        if (callback.Message != null && callback.Data != null && Guid.TryParse(callback.Data, out var guid))
+        if (callback.Message != null && callback.Data != null && Guid.TryParse(callback.Data, out var productId))
         {
             if (callback.Message.ReplyMarkup == null)
                 throw new InvalidOperationException();
@@ -215,26 +212,27 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             var inlineKeyboard = callback.Message.ReplyMarkup.InlineKeyboard.First().ToArray();
 
             var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
-                guid,
+                productId,
                 inlineKeyboard[0].Text,
                 inlineKeyboard[1].Text,
                 inlineKeyboard[2].Text == "🛒" ? "✅" : "🛒");
 
+            var chatId = callback.Message.Chat.Id;
+            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+
             if (inlineKeyboard[2].Text == "🛒")
             {
-                log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
+                log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From,
+                    productId);
 
-                // TODO fix it
-                // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
-                // dbDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
+                dbDriver.AddUserProductBinding(chatId, teamId, productId);
             }
             else
             {
-                log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
+                log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From,
+                    productId);
 
-                // TODO fix it
-                // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
-                // dbDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
+                dbDriver.DeleteUserProductBinding(chatId, teamId, productId);
             }
 
             await client.EditMessageTextAsync(

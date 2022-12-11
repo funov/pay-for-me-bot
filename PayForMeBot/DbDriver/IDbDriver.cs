@@ -19,4 +19,5 @@ public interface IDbDriver
     void AddUserProductBinding(long userChatId, Guid teamId, Guid productId);
     IEnumerable<UserProductTable> GetProductBindingsByUserChatId(long userChatId, Guid teamId);
     string? GetUserStage(long userChatId, Guid teamId);
+    IEnumerable<ProductTable> GetProductsByTeamId(Guid teamId);
 }
