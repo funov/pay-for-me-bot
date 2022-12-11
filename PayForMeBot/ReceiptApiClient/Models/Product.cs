@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace PayForMeBot.ReceiptApiClient.Models;
 
 public class Product
@@ -12,17 +14,17 @@ public class Product
     
     public static bool TryParse(string message, out Product product)
     {
-        if (message.Split(" ").Length > 2)
+        if (message.Split().Length > 2)
         {
-            if (double.TryParse(message.Split(" ")[message.Length - 1], out var price) &&
-                int.TryParse(message.Split(" ")[message.Length - 2], out var count))
+            if (double.TryParse(message.Split()[message.Split().Length - 1].Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out var price) &&
+                int.TryParse(message.Split()[message.Split().Length - 2], out var count))
             {
                 product = new Product()
                 {
                     Count = count,
-                    Name = message.Split(" ").Take(message.Length - 2).ToString(),
+                    Name = string.Join(" ", message.Split().Take(message.Split().Length - 2)),
                     Price = price,
-                    TotalPrice = count * price
+                    TotalPrice = price
                 };
 
                 return true;

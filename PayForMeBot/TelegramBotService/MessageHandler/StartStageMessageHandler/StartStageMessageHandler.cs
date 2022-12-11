@@ -9,7 +9,7 @@ namespace PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler
 
 public class StartStageMessageHandler : IStartStageMessageHandler
 {
-    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IKeyboardMarkup keyboardMarkup;
@@ -61,7 +61,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     cancellationToken: cancellationToken);
                 break;
             case "Создать команду":
-                if (IsUserInTeam(chatId))
+                if (!IsUserInTeam(chatId))
                 {
                     var userTeamId = Guid.NewGuid();
                     log.LogInformation("{username} created team {guid} in {chatId}",
@@ -96,7 +96,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 );
                 break;
             case "Присоединиться к команде":
-                if (IsUserInTeam(chatId))
+                if (!IsUserInTeam(chatId))
                 {
                     await client.SendTextMessageAsync(
                         chatId: chatId,
@@ -110,6 +110,13 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Ты уже в команде",
+                    cancellationToken: cancellationToken
+                );
+
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: $"Можете начинать писать продукты!",
+                    replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken
                 );
                 break;
