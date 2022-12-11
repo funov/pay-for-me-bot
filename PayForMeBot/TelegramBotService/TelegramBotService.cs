@@ -112,7 +112,7 @@ public class TelegramBotService : ITelegramBotService
         {
             case {Type: UpdateType.CallbackQuery}:
                 if (update.CallbackQuery != null && currentStage is "middle" or "start")
-                    await middleHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
+                    await middleHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken );
                 break;
         }
     }
