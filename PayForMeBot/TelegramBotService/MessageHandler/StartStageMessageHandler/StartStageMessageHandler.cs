@@ -43,7 +43,6 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         // TODO Подсчитать расходы и скинуть ссылки каждому
         // TODO Добавить ограничение завершения только на лидера группы
         // TODO рефакторинг
-
         // TODO если чел в midStage, отправить ему клавиатуру с кнопкой "готово"
 
         switch (message.Text!)
@@ -62,7 +61,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     cancellationToken: cancellationToken);
                 break;
             case "Создать команду":
-                if (IsUserInCommand())
+                if (IsUserInTeam(chatId))
                 {
                     var userTeamId = Guid.NewGuid();
                     log.LogInformation("{username} created team {guid} in {chatId}",
@@ -97,7 +96,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 );
                 break;
             case "Присоединиться к команде":
-                if (IsUserInCommand())
+                if (IsUserInTeam(chatId))
                 {
                     await client.SendTextMessageAsync(
                         chatId: chatId,
@@ -107,15 +106,13 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     );
                     break;
                 }
-                else
-                {
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: "Ты уже в команде",
-                        cancellationToken: cancellationToken
-                    );
-                    break;
-                }
+
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Ты уже в команде",
+                    cancellationToken: cancellationToken
+                );
+                break;
         }
 
         if (Guid.TryParse(message.Text, out var teamId))
@@ -135,10 +132,5 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         }
     }
 
-    private bool IsUserInCommand()
-    {
-        // TODO проверить, в команде ли пользователь
-
-        return true;
-    }
+    private bool IsUserInTeam(long userChatId) => dbDriver.IsUserInDb(userChatId);
 }

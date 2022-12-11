@@ -32,15 +32,14 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         switch (message.Text!)
         {
-            case "Помощь":
+            case "/help":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: HelpMessage,
                     cancellationToken: cancellationToken);
                 return;
             case "Готово":
-                // Если еще не скинул реквизиты, то прими, иначе -- послать далеко и надолго
-                if (!CheckIfUserSentReceiveMoneyMethod())
+                if (!IsUserSentRequisite())
                 {
                     await client.SendTextMessageAsync(
                         chatId: chatId,
@@ -49,18 +48,15 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                         cancellationToken: cancellationToken);
                     return;
                 }
-                
-                else
-                {
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: "Ты уже нажал Готово, твои реквизиты приняты",
-                        cancellationToken: cancellationToken);
-                    return;
-                }
+
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Ты уже нажал Готово, твои реквизиты приняты",
+                    cancellationToken: cancellationToken);
+                return;
         }
 
-        if (CheckIfReceiveMoneyMethodIsValid(message.Text!))
+        if (IsRequisiteValid(message.Text!))
         {
             // db.AddReceiveMoneyMethod(...);
             log.LogInformation("User sent valid rm method {method}", message.Text);
@@ -70,8 +66,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                       "я рассчитаю чеки и вышлю реквизиты",
                 cancellationToken: cancellationToken);
         }
-
-        else if (!CheckIfReceiveMoneyMethodIsValid(message.Text!))
+        else
         {
             log.LogInformation("User sent invalid rm method {method}", message.Text);
             await client.SendTextMessageAsync(
@@ -82,30 +77,27 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         }
     }
 
-    private async Task SendReceiveMoneyMethodsAndDebt(ITelegramBotClient client, Message message,
+    private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId,
         CancellationToken cancellationToken)
     {
-        // TODO сделать отправку реквизитов + общую стоимость
-        // TODO видимо, нужно уметь ходить в бд
+        // TODO Запрос в бд
 
-        var chatId = message.Chat.Id;
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: "rm method + total price",
+            text: "Ты должен ... рублей!",
             cancellationToken: cancellationToken
         );
     }
 
-    private bool CheckIfUserSentReceiveMoneyMethod()
+    private bool IsUserSentRequisite()
     {
         // TODO Уметь ходить в базу, проверять, отправил ли свои реквизиты пользователь
         return false;
     }
 
-    private bool CheckIfReceiveMoneyMethodIsValid(string text)
+    private bool IsRequisiteValid(string text)
     {
         // TODO проверить реквизиты на валидность. Номер телефона и/или ссылка на тиньк
-
         return true;
     }
 }

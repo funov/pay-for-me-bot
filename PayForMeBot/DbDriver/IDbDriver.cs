@@ -7,6 +7,7 @@ public interface IDbDriver
 {
     void AddUser(string userTgId, long userChatId, Guid teamId, string? spbLink);
     Guid GetTeamIdByUserChatId(long userChatId);
+    bool IsUserInDb(long userChatId);
     void AddSbpLink(long userChatId, Guid teamId, string? sbpLink);
     void ChangeUserStage(long userChatId, Guid teamId, string stage);
     double GetUserTotalPriceByChatId(long userChatId, Guid teamId);

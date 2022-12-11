@@ -31,6 +31,10 @@ public class DbDriver : IDbDriver
             .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))
             !.TeamId;
 
+    public bool IsUserInDb(long userChatId)
+        => db.Users
+            .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId)) != null;
+
     public void AddSbpLink(long userChatId, Guid teamId, string? sbpLink)
     {
         var userTable = db.Users.FirstOrDefault(userTable

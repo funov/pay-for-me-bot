@@ -43,6 +43,8 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
         var productGuid = Guid.NewGuid();
+
+        // TODO Сделать Product.TryParse с out
         var dbProduct = ParseTextToProduct(message.Text!);
 
         var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
@@ -228,8 +230,8 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
     private static Product ParseTextToProduct(string text)
     {
-        var productName = text.Split(" ").Take(text.Length - 1).ToString();
-        if (double.TryParse(text.Split(" ").Last(), out var price))
+        var productName = text.Split().Take(text.Length - 1).ToString();
+        if (double.TryParse(text.Split().Last(), out var price))
             return new Product
             {
                 Count = 1,
@@ -238,6 +240,6 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 TotalPrice = price
             };
 
-        throw new ArgumentException("Неправильная цена / нарушен формат строки");
+        throw new FormatException("Unexpected product string format");
     }
 }
