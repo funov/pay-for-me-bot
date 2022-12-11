@@ -4,35 +4,44 @@ using PayForMeBot.DbDriver;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
+using PayForMeBot.TelegramBotService.KeyboardMarkup;
+using Telegram.Bot.Types.Enums;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 
 public class EndStageMessageHandler : IEndStageMessageHandler
 {
+    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IDbDriver dbDriver;
+    private readonly IKeyboardMarkup keyboardMarkup;
 
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
-           "2) Далее каждого попросят ввести номер телефона и ссылку Тинькофф (если есть) для " +
+           "2) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\n" +
-           "3) Теперь можно начать вводить товары или услуги. Напиши продукт и его цену, либо просто отправь чек " +
+           "3) Теперь можно начать вводить товары или услуги. Напиши продукт/услугу количествов штуках и цену, либо просто отправь чек " +
            "(где хорошо виден QR-код). Далее нажми на «🛒», чтобы позже заплатить " +
-           "за этот товар, если все хорошо, ты увидишь «✅», для отмены нажми еще раз на эту кнопку. 🤓🤓🤓\n\n" +
-           "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
-           "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
+           "за этот товар. Ты увидишь «✅». Для отмены нажми еще раз на эту кнопку. 🤓🤓🤓\n\n" +
+           "4) Если ваше мероприятие закончилось, и вы выбрали за что хотите платить, кто-то должен нажать " +
+           "на кнопку «<b>Перейти к разделению счёта</b>💴». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
-    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver)
+    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver,
+        IKeyboardMarkup keyboardMarkup)
     {
         this.log = log;
         this.dbDriver = dbDriver;
+        this.keyboardMarkup = keyboardMarkup;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
     {
         var chatId = message.Chat.Id;
+        var userName = message.Chat.Username!;
 
-        log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
+        log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
+            message.Text, chatId, userName);
 
         // Ждем сразу телефон и тиньк ссылку
         // Но перед этим смотрим в бд есть ли это у юзера, если есть то игнорим
@@ -43,6 +52,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: HelpMessage,
+                    parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
                 return;
             case "Готово":
@@ -111,7 +121,14 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                 text: MessageForUser(buyers2Money),
                 cancellationToken: cancellationToken
             );
+
             dbDriver.ChangeUserStage(chatId, teamId, "start");
+
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Можешь переходить к оплате. Обязательно возвращайся в следующий раз! 🥰🥰",
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
+                cancellationToken: cancellationToken);
         }
         else
         {
@@ -147,7 +164,6 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         return "Ты должен заплатить:\n" + message;
     }
-
 
     private bool IsUserSentRequisite(long chatId) => dbDriver.IsUserSentRequisite(chatId);
 
@@ -216,7 +232,6 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             return true;
         return false;
     }
-
 
     private bool AllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
 }

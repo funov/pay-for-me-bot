@@ -7,6 +7,7 @@ using PayForMeBot.ReceiptApiClient.Models;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
@@ -15,13 +16,13 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 {
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
-           "2) Далее каждого попросят ввести номер телефона и ссылку Тинькофф (если есть) для " +
+           "2) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\n" +
            "3) Теперь можно начать вводить товары или услуги. Напиши продукт/услугу количествов штуках и цену, либо просто отправь чек " +
            "(где хорошо виден QR-код). Далее нажми на «🛒», чтобы позже заплатить " +
            "за этот товар. Ты увидишь «✅». Для отмены нажми еще раз на эту кнопку. 🤓🤓🤓\n\n" +
            "4) Если ваше мероприятие закончилось, и вы выбрали за что хотите платить, кто-то должен нажать " +
-           "на кнопку «Перейти к разделению счёта💴». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
+           "на кнопку «<b>Перейти к разделению счёта</b>💴». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
@@ -40,31 +41,33 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
     {
         var chatId = message.Chat.Id;
+        var userName = message.Chat.Username!;
 
-        log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
+        log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
+            message.Text, chatId, userName);
         var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
 
         switch (message.Text!)
         {
             // TODO Добавить ограничение завершения только на лидера группы
-            // TODO рефакторинг
-            // TODO когда чел заходит в endStage, удалить клавиатуру с кнопкой готово
+            // TODO Рефакторинг
 
-            case "Готово":
+            case "Перейти к разделению счёта💴":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Ты уверен, что все участники команды уже готовы делить счет?" +
                           "\n\n" +
-                          "После этого бот подсчитает кто кому сколько должен и скинет реквизиты для оплаты" +
+                          "После этого бот подсчитает, кто кому сколько должен и скинет реквизиты для оплаты" +
                           "\n\n" +
                           "Вернуться к выбору продуктов будет невозможно!",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Да", "Нет"}),
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Да!", "Нет🫣" }),
                     cancellationToken: cancellationToken);
                 return;
             case "/help":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: HelpMessage,
+                    parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
                 return;
             case "Да":
@@ -79,40 +82,37 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Нажми, как будете готовы делить счет!",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new []{"Перейти к разделению счёта💴"}),
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Перейти к разделению счёта💴" }),
                     cancellationToken: cancellationToken);
-                break;
+                return;
         }
 
         if (Product.TryParse(message.Text!, out var dbProduct))
         {
             var productGuid = Guid.NewGuid();
-            // TODO Сделать Product.TryParse с out
-
 
             dbDriver.AddProduct(productGuid, dbProduct, productGuid, chatId, teamId);
 
-            log.LogInformation("User added {product} with cost {price} in chat {chatId}",
-                dbProduct.Name, dbProduct.Price, chatId);
+            log.LogInformation("@{userName} added product {productGuid} in chat {chatId}",
+                userName, productGuid, chatId);
+
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: $"Принял, {dbProduct.Name} {dbProduct.Count} шт за {dbProduct.Price} р.",
                 cancellationToken: cancellationToken
             );
         }
-
         else
         {
-            // TODO мб if выглядит косячно, но вроде работает :)
-            
-            if (message.Text == "Нет")
-                return;
-            log.LogInformation("Cant parse text {text} too product", message.Text);
+            log.LogInformation("Can't parse text from @{userName} {text} to product in chat {chatId}",
+                userName, message.Text, chatId);
+
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: "Если вводишь продукты текстом, нужно что-то такое 🤨🤨🤨" +
-                      "\n\nОранжевые апельсины 2 200.22\n\n" +
-                      "(Название Количество Итоговая цена)",
+                      "\n\n<b>Оранжевые апельсины 2 200.22</b>\n\n" +
+                      "(<b>Название Количество Итоговая цена</b>)",
+                parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken
             );
         }
@@ -134,7 +134,8 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         var filePath = fileInfo.FilePath;
 
-        log.LogInformation("Received a '{photoPath}' message in chat {chatId}", filePath, chatId);
+        log.LogInformation("Received a '{photoPath}' message from @{userName} in chat {chatId}",
+            filePath, userName, chatId);
 
         var encryptedContent = Array.Empty<byte>();
 
@@ -155,7 +156,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         try
         {
-            log.LogInformation("Send request to receipt api in {chatId}", chatId);
+            log.LogInformation("Send request to receipt api from @{userName} in {chatId}", userName, chatId);
 
             var receipt = await receiptApiClient.GetReceipt(encryptedContent);
             var products = receipt.Products;
@@ -175,7 +176,8 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             problemText = "Обработка изображений временно недоступна";
         }
 
-        log.LogInformation("Received a '{problemText}' message in chat {chatId}", problemText, chatId);
+        log.LogInformation("Send a '{problemText}' message to @{userName} in chat {chatId}",
+            problemText, userName, chatId);
 
         await client.SendTextMessageAsync(
             chatId: chatId,
@@ -191,19 +193,20 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         foreach (var product in products)
         {
             var text = $"{product.Name}";
-            var guid = Guid.NewGuid();
+            var productId = Guid.NewGuid();
 
             var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
-                guid,
+                productId,
                 $"{product.TotalPrice} р.",
                 $"{product.Count} шт.",
                 "🛒");
 
             var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
 
-            dbDriver.AddProduct(guid, product, receiptGuid, chatId, teamId);
+            dbDriver.AddProduct(productId, product, receiptGuid, chatId, teamId);
 
-            log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
+            log.LogInformation("Send product {productId} inline button to @{userName} in chat {chatId}",
+                productId, userName, chatId);
 
             await client.SendTextMessageAsync(
                 chatId,
@@ -230,20 +233,21 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 inlineKeyboard[1].Text,
                 inlineKeyboard[2].Text == "🛒" ? "✅" : "🛒");
 
-            var chatId = callback.Message.Chat.Id;
+            var chatId = callback.From.Id;
+            var userName = callback.From.Username;
             var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
 
             if (inlineKeyboard[2].Text == "🛒")
             {
-                log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From,
-                    productId);
+                log.LogInformation("User @{userName} decided to pay for the product {ProductId} in chat {chatId}",
+                    userName, productId, chatId);
 
                 dbDriver.AddUserProductBinding(chatId, teamId, productId);
             }
             else
             {
-                log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From,
-                    productId);
+                log.LogInformation("User @{userName} refused to pay for the product {ProductId} in chat {chatId}",
+                    userName, productId, chatId);
 
                 dbDriver.DeleteUserProductBinding(chatId, teamId, productId);
             }
