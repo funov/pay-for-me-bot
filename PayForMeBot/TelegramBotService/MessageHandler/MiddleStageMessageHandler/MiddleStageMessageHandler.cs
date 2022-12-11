@@ -41,12 +41,6 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         var chatId = message.Chat.Id;
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
-
-        var dbProduct = ParseTextToProduct(message.Text!);
-
-        // db.AddProduct(...);
-        log.LogInformation("User added {product} with cost {price} in chat {chatId}",
-            dbProduct.Name, dbProduct.Price, chatId);
         
         switch (message.Text!)
         {
@@ -69,6 +63,31 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                     text: HelpMessage,
                     cancellationToken: cancellationToken);
                 return;
+        }
+        
+        if (Product.TryParse(message.Text!, out var dbProduct))
+        {
+            // db.AddProduct(...);
+            log.LogInformation("User added {product} with cost {price} in chat {chatId}",
+                dbProduct.Name, dbProduct.Price, chatId);
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: $"Принял, {dbProduct.Name} {dbProduct.Count} шт за {dbProduct.Price} р. штука",
+                cancellationToken: cancellationToken
+            );
+        }
+
+        else
+        {
+            log.LogInformation("Cant parse text {text} too product", message.Text);
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Если вводишь продукты текстом, то нужно следовать шаблону: " +
+                      "Название продукта/услуги количество (натуральное число) " +
+                      "цена за единицу (рубли и копейки отдели точкой)" +
+                      "Например, булочки с вишней 5 300.50",
+                cancellationToken: cancellationToken
+            );
         }
     }
 
@@ -211,18 +230,23 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
-    private static Product ParseTextToProduct(string text)
-    {
-        var productName = text.Split(" ").Take(text.Length - 1).ToString();
-        if (double.TryParse(text.Split(" ").Last(), out var price))
-            return new Product
-            {
-                Count = 1,
-                Name = productName,
-                Price = price,
-                TotalPrice = price
-            };
+    // private static Product ParseTextToProduct(string text)
+    // {
+    //     var productName = text.Split(" ").Take(text.Length - 1).ToString();
+    //     if (double.TryParse(text.Split(" ").Last(), out var price))
+    //         return new Product
+    //         {
+    //             Count = 1,
+    //             Name = productName,
+    //             Price = price,
+    //             TotalPrice = price
+    //         };
+    //
+    //     throw new ArgumentException("Неправильная цена / нарушен формат строки");
+    // }
 
-        throw new ArgumentException("Неправильная цена / нарушен формат строки");
-    }
+    public static class ProductExtension
+    {
+        
+    } 
 }
