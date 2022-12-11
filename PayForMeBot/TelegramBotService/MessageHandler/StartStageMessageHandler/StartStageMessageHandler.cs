@@ -90,8 +90,10 @@ public class StartStageMessageHandler : IStartStageMessageHandler
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: $"Можете начинать писать продукты!",
-                    replyMarkup: new ReplyKeyboardRemove(),
+                    text: $"Можете начинать писать продукты!" +
+                          $"\n\n" +
+                          $"Когда закончите вводить/выбирать продукты, нажмите кнопку внизу",
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new []{"Перейти к разделению счёта💴"}),
                     cancellationToken: cancellationToken
                 );
                 break;
