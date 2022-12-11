@@ -70,7 +70,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
                 return;
-            case "Да":
+            case "Да!":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Отправь мне свой номер телефона и ссылку на реквизиты в Тинькофф банк (если она есть).",
@@ -78,7 +78,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                     cancellationToken: cancellationToken);
                 dbDriver.ChangeUserStage(chatId, teamId, "end");
                 return;
-            case "Нет":
+            case "Нет🫣":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Нажми, как будете готовы делить счет!",
