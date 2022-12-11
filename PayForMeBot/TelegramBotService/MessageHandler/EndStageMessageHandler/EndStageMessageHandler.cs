@@ -46,11 +46,21 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                     await client.SendTextMessageAsync(
                         chatId: chatId,
                         text: "Отправь свои реквизиты: " +
-                              "номер телефона и/или ссылку на Тинькофф, если все в команде используют Тинькофф банк",
+                              "номер телефона и/или ссылку на Тинькофф",
                         cancellationToken: cancellationToken);
                     var teamId = dbDriver.GetTeamIdByUserChatId(message.Chat.Id);
-                    IsRequisiteValid(message.Text!);
-                    //dbDriver.AddTelephoneNumberAndTinkoffLink(message.Chat.Id, teamId, );
+                    if (IsRequisiteValid(message.Text!))
+                    {
+                        AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
+                    }
+                    
+                    else
+                    {
+                        await client.SendTextMessageAsync(
+                            chatId: chatId,
+                            text: "Ты отправил неверные реквизиты, попробуй еще раз",
+                            cancellationToken: cancellationToken);
+                    }
                     return;
                 }
 
@@ -95,6 +105,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                 text: MessageForUser(buyers2Money),
                 cancellationToken: cancellationToken
             );
+            dbDriver.ChangeUserStage(chatId, teamId, "start");
         }
         else
         {
@@ -108,7 +119,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
     private string MessageForUser(Dictionary<long, double> buyers2Money)
     {
-        var b = new StringBuilder();
+        var message = new StringBuilder();
         foreach (var pair in buyers2Money)
         {
             var buyerUserName = dbDriver.GetUsernameByChatId(pair.Key);
@@ -116,19 +127,19 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             if (typeRequisites == "phoneNumber")
             {
                 var phoneNumber = dbDriver.GetPhoneNumberByChatId(pair.Key);
-                b.Append(String.Format("{buyerUserName} {phoneNumber}: {money}\n",
+                message.Append(String.Format("{buyerUserName} {phoneNumber}: {money}\n",
                     buyerUserName, phoneNumber, pair.Value));
             }
 
             if (typeRequisites == "tinkoffLink")
             {
                 var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(pair.Key);
-                b.Append(String.Format("{buyerUserName} {phoneNumber}: {money}",
+                message.Append(String.Format("{buyerUserName} {phoneNumber}: {money}",
                     buyerUserName, tinkoffLink, pair.Value));
             }
         }
 
-        return "Ты должен заплатить:\n" + b;
+        return "Ты должен заплатить:\n" + message;
     }
     
 
@@ -136,14 +147,48 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
     private bool IsRequisiteValid(string text)
     {
+        text = text.Trim();
         var requisites = text.Split("\n");
         if (requisites.Length != 2)
         {
             if (requisites.Length == 1)
-                return IsTelephoneNumberValid(requisites[0]);
+            {
+                var phoneAndLink = requisites[0].Split(" ");
+                if (phoneAndLink.Length > 2)
+                    return false;
+                else
+                {
+                    if (phoneAndLink.Length==1)
+                        return IsTelephoneNumberValid(phoneAndLink[0]);
+                    if (phoneAndLink.Length==2)
+                        return IsTelephoneNumberValid(phoneAndLink[0]) && IsTinkoffLinkValid(phoneAndLink[1]);
+                }
+            }
             return false;
         }
         return IsTelephoneNumberValid(requisites[0]) && IsTinkoffLinkValid(requisites[1]);
+    }
+
+    private void AddPhoneNumberAndTinkoffLink(string text, long userChatId, Guid teamId)
+    {
+        text = text.Trim();
+        var requisites = text.Split("\n");
+        if (requisites.Length != 2)
+        {
+            dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, text);
+        }
+        else
+        {
+            var phoneAndLink = text.Split(" ");
+            if (IsTelephoneNumberValid(phoneAndLink[0]))
+            {
+                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0], phoneAndLink[1]);
+            }
+            else
+            {
+                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[1], phoneAndLink[0]);
+            }
+        }
     }
 
     private bool IsTelephoneNumberValid(string telephoneNumber)
@@ -163,6 +208,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             return true;
         return false;
     }
+    
 
     private bool AllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
 }    
