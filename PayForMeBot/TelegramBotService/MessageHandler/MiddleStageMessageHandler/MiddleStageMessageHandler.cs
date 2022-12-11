@@ -169,9 +169,9 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 $"{product.TotalPrice} р.",
                 $"{product.Count} шт.",
                 "🛒");
-
-            // TODO fix it
-            // dbDriver.AddProduct(guid, product, receiptGuid, userName, message.Chat.Id);
+            
+            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+            dbDriver.AddProduct(guid, product, receiptGuid, chatId, teamId);
 
             log.LogInformation("Send product {ProductId} inline button to chat {ChatId}", guid, chatId);
 
@@ -203,18 +203,15 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             if (inlineKeyboard[2].Text == "🛒")
             {
                 log.LogInformation("User {UserId} decided to pay for the product {ProductId}", callback.From, guid);
-
-                // TODO fix it
-                // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
-                // dbDriver.AddUserProductBinding(callback.From.Username, teamId, guid);
+                var teamId = dbDriver.GetTeamIdByUserChatId(callback.From.Id);
+                dbDriver.AddUserProductBinding(callback.From.Id, teamId, guid);
             }
             else
             {
                 log.LogInformation("User {UserId} refused to pay for the product {ProductId}", callback.From, guid);
 
-                // TODO fix it
-                // var teamId = dbDriver.GetTeamIdByUserTelegramId(callback.From.Username!);
-                // dbDriver.DeleteUserProductBinding(callback.From.Username, teamId, guid);
+                var teamId = dbDriver.GetTeamIdByUserChatId(callback.From.Id);
+                dbDriver.DeleteUserProductBinding(callback.From.Id, teamId, guid);
             }
 
             await client.EditMessageTextAsync(

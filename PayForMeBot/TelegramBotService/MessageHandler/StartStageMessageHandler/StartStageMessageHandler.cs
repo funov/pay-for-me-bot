@@ -40,7 +40,6 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
         // TODO Брать их из массива (teamSelectionLabels)
-        // TODO Подсчитать расходы и скинуть ссылки каждому
         // TODO Добавить ограничение завершения только на лидера группы
         // TODO рефакторинг
         // TODO если чел в midStage, отправить ему клавиатуру с кнопкой "готово"
@@ -61,7 +60,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     cancellationToken: cancellationToken);
                 break;
             case "Создать команду":
-                if (IsUserInTeam(chatId))
+                if (!IsUserInTeam(chatId))
                 {
                     var userTeamId = Guid.NewGuid();
                     log.LogInformation("{username} created team {guid} in {chatId}",
