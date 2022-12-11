@@ -1,8 +1,6 @@
 ﻿using System.Text;
 using Microsoft.Extensions.Logging;
 using PayForMeBot.DbDriver;
-using PayForMeBot.ReceiptApiClient;
-using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
@@ -12,8 +10,6 @@ namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 public class EndStageMessageHandler : IEndStageMessageHandler
 {
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
-    private readonly IReceiptApiClient receiptApiClient;
-    private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IDbDriver dbDriver;
 
     private static string HelpMessage
@@ -26,11 +22,20 @@ public class EndStageMessageHandler : IEndStageMessageHandler
            "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
            "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
+    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver)
+    {
+        this.log = log;
+        this.dbDriver = dbDriver;
+    }
+
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
     {
         var chatId = message.Chat.Id;
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
+
+        // Ждем сразу телефон и тиньк ссылку
+        // Но перед этим смотрим в бд есть ли это у юзера, если есть то игнорим
 
         switch (message.Text!)
         {
@@ -53,7 +58,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                     {
                         AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
                     }
-                    
+
                     else
                     {
                         await client.SendTextMessageAsync(
@@ -61,6 +66,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                             text: "Ты отправил неверные реквизиты, попробуй еще раз",
                             cancellationToken: cancellationToken);
                     }
+
                     return;
                 }
 
@@ -141,7 +147,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         return "Ты должен заплатить:\n" + message;
     }
-    
+
 
     private bool IsUserSentRequisite(long chatId) => dbDriver.IsUserSentRequisite(chatId);
 
@@ -158,14 +164,16 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                     return false;
                 else
                 {
-                    if (phoneAndLink.Length==1)
+                    if (phoneAndLink.Length == 1)
                         return IsTelephoneNumberValid(phoneAndLink[0]);
-                    if (phoneAndLink.Length==2)
+                    if (phoneAndLink.Length == 2)
                         return IsTelephoneNumberValid(phoneAndLink[0]) && IsTinkoffLinkValid(phoneAndLink[1]);
                 }
             }
+
             return false;
         }
+
         return IsTelephoneNumberValid(requisites[0]) && IsTinkoffLinkValid(requisites[1]);
     }
 
@@ -208,7 +216,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             return true;
         return false;
     }
-    
+
 
     private bool AllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
-}    
+}
