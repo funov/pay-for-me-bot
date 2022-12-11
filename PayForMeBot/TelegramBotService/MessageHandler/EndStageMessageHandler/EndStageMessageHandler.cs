@@ -1,17 +1,15 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Text;
+using Microsoft.Extensions.Logging;
 using PayForMeBot.DbDriver;
-using PayForMeBot.ReceiptApiClient;
-using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using System.Text.RegularExpressions;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 
 public class EndStageMessageHandler : IEndStageMessageHandler
 {
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
-    private readonly IReceiptApiClient receiptApiClient;
-    private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IDbDriver dbDriver;
 
     private static string HelpMessage
@@ -24,11 +22,20 @@ public class EndStageMessageHandler : IEndStageMessageHandler
            "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
            "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
+    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver)
+    {
+        this.log = log;
+        this.dbDriver = dbDriver;
+    }
+
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
     {
         var chatId = message.Chat.Id;
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
+
+        // Ждем сразу телефон и тиньк ссылку
+        // Но перед этим смотрим в бд есть ли это у юзера, если есть то игнорим
 
         switch (message.Text!)
         {
@@ -39,13 +46,27 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                     cancellationToken: cancellationToken);
                 return;
             case "Готово":
-                if (!IsUserSentRequisite())
+                if (!IsUserSentRequisite(chatId))
                 {
                     await client.SendTextMessageAsync(
                         chatId: chatId,
                         text: "Отправь свои реквизиты: " +
-                              "номер телефона и/или ссылку на Тинькофф, если все в команде используют Тинькофф банк",
+                              "номер телефона и/или ссылку на Тинькофф",
                         cancellationToken: cancellationToken);
+                    var teamId = dbDriver.GetTeamIdByUserChatId(message.Chat.Id);
+                    if (IsRequisiteValid(message.Text!))
+                    {
+                        AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
+                    }
+
+                    else
+                    {
+                        await client.SendTextMessageAsync(
+                            chatId: chatId,
+                            text: "Ты отправил неверные реквизиты, попробуй еще раз",
+                            cancellationToken: cancellationToken);
+                    }
+
                     return;
                 }
 
@@ -72,7 +93,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: "Ты скинул неправильные реквизиты. " +
-                      "Отправь мне ссылку на Тинькофф и/или номер телефона в формате +7",
+                      "Отправь мне ссылку на Тинькофф и/или номер телефона еще раз",
                 cancellationToken: cancellationToken);
         }
     }
@@ -80,24 +101,122 @@ public class EndStageMessageHandler : IEndStageMessageHandler
     private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId,
         CancellationToken cancellationToken)
     {
-        // TODO Запрос в бд
+        var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+        var buyers2Money = dbDriver.GetRequisitesAndDebts(chatId, teamId);
 
-        await client.SendTextMessageAsync(
-            chatId: chatId,
-            text: "Ты должен ... рублей!",
-            cancellationToken: cancellationToken
-        );
+        if (AllTeamUsersHavePhoneNumber(teamId))
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: MessageForUser(buyers2Money),
+                cancellationToken: cancellationToken
+            );
+            dbDriver.ChangeUserStage(chatId, teamId, "start");
+        }
+        else
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Кто-то не указал свой номер телефон, его нужно ввести и попробовать снова",
+                cancellationToken: cancellationToken
+            );
+        }
     }
 
-    private bool IsUserSentRequisite()
+    private string MessageForUser(Dictionary<long, double> buyers2Money)
     {
-        // TODO Уметь ходить в базу, проверять, отправил ли свои реквизиты пользователь
-        return false;
+        var message = new StringBuilder();
+        foreach (var pair in buyers2Money)
+        {
+            var buyerUserName = dbDriver.GetUsernameByChatId(pair.Key);
+            var typeRequisites = dbDriver.GetTypeRequisites(pair.Key);
+            if (typeRequisites == "phoneNumber")
+            {
+                var phoneNumber = dbDriver.GetPhoneNumberByChatId(pair.Key);
+                message.Append(String.Format("{buyerUserName} {phoneNumber}: {money}\n",
+                    buyerUserName, phoneNumber, pair.Value));
+            }
+
+            if (typeRequisites == "tinkoffLink")
+            {
+                var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(pair.Key);
+                message.Append(String.Format("{buyerUserName} {phoneNumber}: {money}",
+                    buyerUserName, tinkoffLink, pair.Value));
+            }
+        }
+
+        return "Ты должен заплатить:\n" + message;
     }
+
+
+    private bool IsUserSentRequisite(long chatId) => dbDriver.IsUserSentRequisite(chatId);
 
     private bool IsRequisiteValid(string text)
     {
-        // TODO проверить реквизиты на валидность. Номер телефона и/или ссылка на тиньк
-        return true;
+        text = text.Trim();
+        var requisites = text.Split("\n");
+        if (requisites.Length != 2)
+        {
+            if (requisites.Length == 1)
+            {
+                var phoneAndLink = requisites[0].Split(" ");
+                if (phoneAndLink.Length > 2)
+                    return false;
+                else
+                {
+                    if (phoneAndLink.Length == 1)
+                        return IsTelephoneNumberValid(phoneAndLink[0]);
+                    if (phoneAndLink.Length == 2)
+                        return IsTelephoneNumberValid(phoneAndLink[0]) && IsTinkoffLinkValid(phoneAndLink[1]);
+                }
+            }
+
+            return false;
+        }
+
+        return IsTelephoneNumberValid(requisites[0]) && IsTinkoffLinkValid(requisites[1]);
     }
+
+    private void AddPhoneNumberAndTinkoffLink(string text, long userChatId, Guid teamId)
+    {
+        text = text.Trim();
+        var requisites = text.Split("\n");
+        if (requisites.Length != 2)
+        {
+            dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, text);
+        }
+        else
+        {
+            var phoneAndLink = text.Split(" ");
+            if (IsTelephoneNumberValid(phoneAndLink[0]))
+            {
+                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0], phoneAndLink[1]);
+            }
+            else
+            {
+                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[1], phoneAndLink[0]);
+            }
+        }
+    }
+
+    private bool IsTelephoneNumberValid(string telephoneNumber)
+    {
+        var regex = new Regex(@"^((8|\+7)[\- ]?)(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$");
+        var matches = regex.Matches(telephoneNumber);
+        if (matches.Count == 1)
+            return true;
+        return false;
+    }
+
+    private bool IsTinkoffLinkValid(string tinkoffLink)
+    {
+        var regex = new Regex(@"https://www.tinkof.ru/rm/[a-z]+.[a-z]+[0-9]+/[a-zA-z0-9]+");
+        var matches = regex.Matches(tinkoffLink);
+        if (matches.Count == 1)
+            return true;
+        return false;
+    }
+
+
+    private bool AllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
 }

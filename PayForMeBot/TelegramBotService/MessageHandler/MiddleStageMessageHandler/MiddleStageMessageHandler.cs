@@ -7,6 +7,7 @@ using PayForMeBot.ReceiptApiClient.Models;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
 
@@ -16,11 +17,11 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
            "2) Далее каждого попросят ввести номер телефона и ссылку Тинькофф (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\n" +
-           "3) Теперь можно начать вводить товары или услуги. Напиши продукт и его цену, либо просто отправь чек " +
+           "3) Теперь можно начать вводить товары или услуги. Напиши продукт/услугу количествов штуках и цену, либо просто отправь чек " +
            "(где хорошо виден QR-код). Далее нажми на «🛒», чтобы позже заплатить " +
-           "за этот товар, если все хорошо, ты увидишь «✅», для отмены нажми еще раз на эту кнопку. 🤓🤓🤓\n\n" +
-           "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
-           "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
+           "за этот товар. Ты увидишь «✅». Для отмены нажми еще раз на эту кнопку. 🤓🤓🤓\n\n" +
+           "4) Если ваше мероприятие закончилось, и вы выбрали за что хотите платить, кто-то должен нажать " +
+           "на кнопку «Перейти к разделению счёта💴». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IReceiptApiClient receiptApiClient;
@@ -46,14 +47,18 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         switch (message.Text!)
         {
             // TODO Добавить ограничение завершения только на лидера группы
-            // TODO Рефакторинг
+            // TODO рефакторинг
             // TODO когда чел заходит в endStage, удалить клавиатуру с кнопкой готово
 
             case "Готово":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Ты уверен, что все участники команды выбрали продукты?",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Да", "Нет" }),
+                    text: "Ты уверен, что все участники команды уже готовы делить счет?" +
+                          "\n\n" +
+                          "После этого бот подсчитает кто кому сколько должен и скинет реквизиты для оплаты" +
+                          "\n\n" +
+                          "Вернуться к выбору продуктов будет невозможно!",
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Да", "Нет"}),
                     cancellationToken: cancellationToken);
                 return;
             case "/help":
@@ -65,21 +70,25 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             case "Да":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Введите СБП линк",
+                    text: "Отправь мне свой номер телефона и ссылку на реквизиты в Тинькофф банк (если она есть).",
+                    replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken);
                 dbDriver.ChangeUserStage(chatId, teamId, "end");
                 return;
             case "Нет":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Ок, нажми тогда в другой раз!",
+                    text: "Нажми, как будете готовы делить счет!",
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new []{"Перейти к разделению счёта💴"}),
                     cancellationToken: cancellationToken);
-                return;
+                break;
         }
 
         if (Product.TryParse(message.Text!, out var dbProduct))
         {
             var productGuid = Guid.NewGuid();
+            // TODO Сделать Product.TryParse с out
+
 
             dbDriver.AddProduct(productGuid, dbProduct, productGuid, chatId, teamId);
 
@@ -87,19 +96,23 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 dbProduct.Name, dbProduct.Price, chatId);
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: $"Принял, {dbProduct.Name} {dbProduct.Count} шт за {dbProduct.Price} р. штука",
+                text: $"Принял, {dbProduct.Name} {dbProduct.Count} шт за {dbProduct.Price} р.",
                 cancellationToken: cancellationToken
             );
         }
 
         else
         {
+            // TODO мб if выглядит косячно, но вроде работает :)
+            
+            if (message.Text == "Нет")
+                return;
             log.LogInformation("Cant parse text {text} too product", message.Text);
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: "Нужно что-то такое 🤨🤨🤨" +
-                      "/n/nОранжевые апельсины 2 200.22/n/n" +
-                      "Название Количество Итоговая цена",
+                text: "Если вводишь продукты текстом, нужно что-то такое 🤨🤨🤨" +
+                      "\n\nОранжевые апельсины 2 200.22\n\n" +
+                      "(Название Количество Итоговая цена)",
                 cancellationToken: cancellationToken
             );
         }
@@ -155,7 +168,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         }
         catch (ReceiptNotFoundException)
         {
-            problemText = "Не удалось обработать чек, возможно на фото нет чека";
+            problemText = "Не удалось обработать чек, возможно, на фото нет чека";
         }
         catch (JsonException)
         {

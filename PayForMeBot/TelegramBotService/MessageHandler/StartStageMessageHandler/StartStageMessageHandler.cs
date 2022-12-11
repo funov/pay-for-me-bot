@@ -40,7 +40,9 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
         // TODO Брать их из массива (teamSelectionLabels)
-        // TODO Рефакторинг
+        // TODO Добавить ограничение завершения только на лидера группы
+        // TODO рефакторинг
+        // TODO если чел в midStage, отправить ему клавиатуру с кнопкой "готово"
 
         switch (message.Text!)
         {
@@ -87,8 +89,10 @@ public class StartStageMessageHandler : IStartStageMessageHandler
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: $"Можете начинать писать продукты!",
-                    replyMarkup: new ReplyKeyboardRemove(),
+                    text: $"Можете начинать писать продукты!" +
+                          $"\n\n" +
+                          $"Когда закончите вводить/выбирать продукты, нажмите кнопку внизу",
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new []{"Перейти к разделению счёта💴"}),
                     cancellationToken: cancellationToken
                 );
                 break;
