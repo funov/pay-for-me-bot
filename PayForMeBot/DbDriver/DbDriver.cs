@@ -75,27 +75,17 @@ public class DbDriver : IDbDriver
                 => userProductTable.UserChatId.Equals(userChatId) && userProductTable.TeamId.Equals(teamId))
             .ToList();
 
-    // public Product GetProductByProductId(Guid id)
-    // {
-    //     var product = db.Products.FirstOrDefault(productTable => productTable.TeamId.Equals(id));
-    //
-    //     return new Product
-    //     {
-    //         Name = product!.Name,
-    //         Price = product.Price,
-    //         TotalPrice = product.TotalPrice,
-    //         Count = product.Count
-    //     };
-    // }
-
     public IEnumerable<ProductTable> GetProductsByTeamId(Guid teamId)
         => db.Products
             .Where(productTable => productTable.TeamId == teamId);
 
-    public void DeleteUserProductBinding(Guid id, long userChatId, Guid teamId, Guid productId)
+    public void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId)
     {
         var binding = db.Bindings
-            .FirstOrDefault(binding => binding.Id.Equals(id));
+            .FirstOrDefault(userProductTable
+                => userProductTable.UserChatId.Equals(userChatId)
+                   && userProductTable.TeamId.Equals(teamId)
+                   && userProductTable.ProductId.Equals(productId));
 
         db.Bindings.Remove(binding!);
         db.SaveChanges();
@@ -134,9 +124,9 @@ public class DbDriver : IDbDriver
     {
         var binding = new UserProductTable
         {
-            Id = id, 
-            UserChatId = userChatId, 
-            ProductId = productId, 
+            Id = id,
+            UserChatId = userChatId,
+            ProductId = productId,
             TeamId = teamId
         };
         db.Bindings.Add(binding);
@@ -178,6 +168,7 @@ public class DbDriver : IDbDriver
                 }
             }
         }
+
         return whomOwes2AmountOwedMoney;
     }
 
