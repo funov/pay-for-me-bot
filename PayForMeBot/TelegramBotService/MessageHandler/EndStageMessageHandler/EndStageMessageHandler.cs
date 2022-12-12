@@ -4,14 +4,18 @@ using PayForMeBot.DbDriver;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
+using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot.Types.Enums;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 
 public class EndStageMessageHandler : IEndStageMessageHandler
 {
+    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IDbDriver dbDriver;
+    private readonly IKeyboardMarkup keyboardMarkup;
 
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
@@ -23,10 +27,12 @@ public class EndStageMessageHandler : IEndStageMessageHandler
            "4) Если ваше мероприятие закончилось, и вы выбрали за что хотите платить, кто-то должен нажать " +
            "на кнопку «<b>Перейти к разделению счёта</b>💴». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
-    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver)
+    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver,
+        IKeyboardMarkup keyboardMarkup)
     {
         this.log = log;
         this.dbDriver = dbDriver;
+        this.keyboardMarkup = keyboardMarkup;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -60,6 +66,12 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                     await client.SendTextMessageAsync(
                         chatId: chatId,
                         text: "Можешь переходить к оплате. Был рад помочь, до встречи!🥰🥰",
+                        cancellationToken: cancellationToken);
+
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Создай или присоединись к команде!",
+                        replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                         cancellationToken: cancellationToken);
 
                     dbDriver.ChangeUserStage(chatId, teamId, "start");
