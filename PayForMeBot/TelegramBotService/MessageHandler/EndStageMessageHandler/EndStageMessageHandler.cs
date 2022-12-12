@@ -114,6 +114,10 @@ public class EndStageMessageHandler : IEndStageMessageHandler
     private string MessageForUser(Dictionary<long, double> buyers2Money)
     {
         var message = new StringBuilder();
+
+        if (buyers2Money.Keys.Count == 0)
+            return "Ты никому не должен! 🤩🤩🤩";
+
         foreach (var pair in buyers2Money)
         {
             var buyerUserName = dbDriver.GetUsernameByChatId(pair.Key);
