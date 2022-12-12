@@ -72,7 +72,8 @@ public class DbDriver : IDbDriver
     public IEnumerable<UserProductTable> GetProductBindingsByUserChatId(long userChatId, Guid teamId)
         => db.Bindings
             .Where(userProductTable
-                => userProductTable.UserChatId.Equals(userChatId) && userProductTable.TeamId.Equals(teamId));
+                => userProductTable.UserChatId.Equals(userChatId) && userProductTable.TeamId.Equals(teamId))
+            .ToList();
 
     // public Product GetProductByProductId(Guid id)
     // {
@@ -162,16 +163,12 @@ public class DbDriver : IDbDriver
                 var buyerChatId = GetBuyerChatId(productId);
                 var amount = db.Products.FirstOrDefault(productTable
                     => productTable.Id.Equals(productId))!.TotalPrice / CountPeopleBuyProduct(productId);
+
                 if (buyerChatId == teamUserChatId)
+                {
                     continue;
-                if (!whomOwes2AmountOwedMoney[teamUserChatId].ContainsKey(buyerChatId))
-                {
-                    whomOwes2AmountOwedMoney[teamUserChatId][buyerChatId] = amount;
                 }
-                else
-                {
-                    whomOwes2AmountOwedMoney[teamUserChatId][buyerChatId] += amount;
-                }
+                whomOwes2AmountOwedMoney[teamUserChatId][buyerChatId] += amount;
             }
         }
         return whomOwes2AmountOwedMoney;
