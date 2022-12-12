@@ -151,7 +151,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     private async Task HandleReceiptAsync(ITelegramBotClient client, long chatId, string? userName,
         byte[] encryptedContent, CancellationToken cancellationToken)
     {
-        var problemText = "Не удалось обработать чек, попробуйте снова";
+        string problemText;
 
         try
         {
@@ -160,17 +160,18 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             var receipt = await receiptApiClient.GetReceipt(encryptedContent);
             var products = receipt.Products;
 
-            if (products != null)
+            if (products == null)
+                return;
+
+            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+            var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+            var productIds = GetProductIds(products, chatId, teamId);
+
+            foreach (var teamUserChatId in teamUserChatIds)
             {
-                var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-                var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
-                var productIds = GetProductIds(products, chatId, teamId);
-                foreach (var teamUserChatId in teamUserChatIds)
-                {
-                    var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
-                    await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, products.ToList(), productIds,
-                        cancellationToken);
-                }
+                var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
+                await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, products.ToList(), productIds,
+                    cancellationToken);
             }
 
             return;
@@ -194,9 +195,9 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     }
 
     private async Task SendProductsMessagesAsync(ITelegramBotClient client, long chatId, string? userName,
-        List<Product> products, List<Guid> productIds, CancellationToken cancellationToken)
+        IReadOnlyList<Product> products, IReadOnlyList<Guid> productIds, CancellationToken cancellationToken)
     {
-        for (int i = 0; i < products.Count; i++)
+        for (var i = 0; i < products.Count; i++)
         {
             var text = $"{products[i].Name}";
             var productId = productIds[i];
@@ -238,7 +239,9 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             var chatId = callback.From.Id;
             var userName = callback.From.Username;
             var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-            var id = new Guid();
+
+            var id = Guid.NewGuid();
+
             if (inlineKeyboard[2].Text == "🛒")
             {
                 log.LogInformation("User @{userName} decided to pay for the product {ProductId} in chat {chatId}",
@@ -265,7 +268,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
-    private List<Guid> GetProductIds(Product[] products, long chatId, Guid teamId)
+    private List<Guid> GetProductIds(IEnumerable<Product> products, long chatId, Guid teamId)
     {
         var productsIds = new List<Guid>();
         foreach (var product in products)

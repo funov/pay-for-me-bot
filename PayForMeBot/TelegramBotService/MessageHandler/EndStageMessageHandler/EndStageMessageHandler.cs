@@ -139,8 +139,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         if (buyers2Money.Count == 0)
             return "Ты никому не должен! 🤩🤩🤩";
-
-
+        
         foreach (var value in buyers2Money)
         {
             var buyerUsername = dbDriver.GetUsernameByChatId(value.Key);
@@ -236,5 +235,5 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             ? string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —", $"\n{money}руб.\n")
             : string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code>,",
                 $"\n<code>{tinkoffLink}</code> ",
-                $"\n{money}руб.\n");
+                $"\n{Math.Round(money, 1)}руб.\n");
 }
