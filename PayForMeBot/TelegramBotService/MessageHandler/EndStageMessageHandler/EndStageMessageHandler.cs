@@ -92,7 +92,10 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Ты отправил неверные реквизиты, попробуй еще раз",
+                    text: "Ты отправил неверные реквизиты, нужно отправить:" +
+                          "\n\n <b>Телефон</b> и <b>Ссылку Тинькофф</b> (если есть)" +
+                          "\n\n Через пробел или перенос строки 🤓🤓🤓",
+                    parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
             }
         }
@@ -156,7 +159,8 @@ public class EndStageMessageHandler : IEndStageMessageHandler
     private bool IsRequisiteValid(string text)
     {
         text = text.Trim();
-        var requisites = text.Split("\n");
+        var requisites = text.Split();
+
         if (requisites.Length != 2)
         {
             if (requisites.Length == 1)
