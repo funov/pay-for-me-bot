@@ -209,13 +209,20 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         else
         {
             var phoneAndLink = text.Split(" ");
-            if (IsTelephoneNumberValid(phoneAndLink[0]))
+            if (phoneAndLink.Length == 1)
             {
-                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0], phoneAndLink[1]);
+                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0]);
             }
             else
             {
-                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[1], phoneAndLink[0]);
+                if (IsTelephoneNumberValid(phoneAndLink[0]))
+                {
+                    dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0], phoneAndLink[1]);
+                }
+                else
+                {
+                    dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[1], phoneAndLink[0]);
+                }
             }
         }
     }
