@@ -96,10 +96,10 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 userName, productGuid, chatId);
             
             var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+            var products = new List<Product> {dbProduct};
+            var productIds = GetProductIds(products, chatId, teamId);
             foreach (var teamUserChatId in teamUserChatIds)
             {
-                var products = new List<Product> {dbProduct};
-                var productIds = GetProductIds(products, chatId, teamId);
                 var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
                 await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, 
                     products, productIds, cancellationToken);
