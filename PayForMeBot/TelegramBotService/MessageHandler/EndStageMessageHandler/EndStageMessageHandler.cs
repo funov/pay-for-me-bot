@@ -58,14 +58,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                 if (DoesAllTeamUsersHavePhoneNumber(teamId))
                 {
                     var teamUsers2Buyers2Money = dbDriver.GetRequisitesAndDebts(teamId);
-                    foreach (var pair in teamUsers2Buyers2Money)
-                    {
-                        Console.WriteLine("user: " + pair.Key);
-                        foreach (var value in pair.Value)
-                        {
-                            Console.WriteLine("кому: "+value.Key+"сколько "+value.Value);
-                        }
-                    }
+
                     var teamChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
                 
                     foreach (var teamChatId in teamChatIds)

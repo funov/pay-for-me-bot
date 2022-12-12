@@ -163,8 +163,6 @@ public class DbDriver : IDbDriver
                 var buyerChatId = GetBuyerChatId(productId);
                 var amount = db.Products.FirstOrDefault(productTable
                     => productTable.Id.Equals(productId))!.TotalPrice / CountPeopleBuyProduct(productId);
-                Console.WriteLine(buyerChatId);
-                Console.WriteLine(teamUserChatId);
                 if (buyerChatId == teamUserChatId)
                 {
                     continue;
