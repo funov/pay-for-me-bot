@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using PayForMeBot.DbDriver;
-using PayForMeBot.DbDriver.Models;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.Models;
@@ -169,9 +168,11 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 foreach (var teamUserChatId in teamUserChatIds)
                 {
                     var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
-                    await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, products.ToList(), productIds, cancellationToken);
+                    await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, products.ToList(), productIds,
+                        cancellationToken);
                 }
             }
+
             return;
         }
         catch (ReceiptNotFoundException)
@@ -199,7 +200,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         {
             var text = $"{products[i].Name}";
             var productId = productIds[i];
-            
+
             var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
                 productId,
                 $"{products[i].TotalPrice} р.",
@@ -242,7 +243,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             {
                 log.LogInformation("User @{userName} decided to pay for the product {ProductId} in chat {chatId}",
                     userName, productId, chatId);
-                
+
                 dbDriver.AddUserProductBinding(id, chatId, teamId, productId);
             }
             else
@@ -250,7 +251,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 log.LogInformation("User @{userName} refused to pay for the product {ProductId} in chat {chatId}",
                     userName, productId, chatId);
 
-                dbDriver.DeleteUserProductBinding(id, chatId, teamId, productId);
+                dbDriver.DeleteUserProductBinding(chatId, teamId, productId);
             }
 
             await client.EditMessageTextAsync(

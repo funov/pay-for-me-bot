@@ -11,8 +11,7 @@ public interface IDbDriver
     void AddPhoneNumberAndTinkoffLink(long userChatId, Guid teamId, string? telephoneNumber,
         string? tinkoffLink = null);
     void ChangeUserStage(long userChatId, Guid teamId, string stage);
-    // Product GetProductByProductId(Guid id);
-    void DeleteUserProductBinding(Guid id, long userChatId, Guid teamId, Guid productId);
+    void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId);
     string? GetTinkoffLinkByUserChatId(long userChatId);
     void AddProduct(Guid id, Product productModel, Guid receiptId, long buyerChatId, Guid teamId);
     public void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, long buyerChatId, Guid teamId);
