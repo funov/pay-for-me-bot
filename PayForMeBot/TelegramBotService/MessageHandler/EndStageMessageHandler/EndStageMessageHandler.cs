@@ -66,12 +66,13 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                         await SendRequisitesAndDebts(client, teamChatId, cancellationToken,
                             teamUsers2Buyers2Money[teamChatId]);
 
+                        dbDriver.ChangeUserStage(chatId, teamId, "start");
+
                         await client.SendTextMessageAsync(
-                            chatId: chatId,
+                            chatId: teamChatId,
                             text: "Создай или присоединись к команде!",
                             replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                             cancellationToken: cancellationToken);
-                        dbDriver.ChangeUserStage(chatId, teamId, "start");
                     }
 
                     dbDriver.DeleteTeamInDb(teamId);
