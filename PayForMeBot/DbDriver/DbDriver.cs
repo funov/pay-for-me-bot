@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using PayForMeBot.DbDriver.Models;
-using Telegram.Bot.Types;
 using Product = PayForMeBot.ReceiptApiClient.Models.Product;
 
 namespace PayForMeBot.DbDriver;
@@ -12,14 +11,13 @@ public class DbDriver : IDbDriver
 
     public DbDriver(IConfiguration config) => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
-    public void AddUser(string userTgId, long userChatId, Guid teamId, string? tinkoffLink)
+    public void AddUser(string userTgId, long userChatId, Guid teamId)
     {
         var user = new UserTable
         {
             Username = userTgId,
             TeamId = teamId,
             UserChatId = userChatId,
-            TinkoffLink = tinkoffLink,
             Stage = "start",
             IsReady = false
         };
@@ -36,9 +34,8 @@ public class DbDriver : IDbDriver
     public bool IsUserInDb(long userChatId) =>
         db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId)) != null;
 
-
-    public void AddPhoneNumberAndTinkoffLink(long userChatId, Guid teamId, string? telephoneNumber, 
-        string? tinkoffLink=null)
+    public void AddPhoneNumberAndTinkoffLink(long userChatId, Guid teamId, string? telephoneNumber,
+        string? tinkoffLink = null)
     {
         var userTable = db.Users.FirstOrDefault(userTable
             => userTable.UserChatId.Equals(userChatId) && userTable.TeamId.Equals(teamId));
@@ -48,11 +45,9 @@ public class DbDriver : IDbDriver
 
         userTable.TinkoffLink = tinkoffLink;
         userTable.TelephoneNumber = telephoneNumber;
-        
+
         db.SaveChanges();
     }
-
-
 
     public void ChangeUserStage(long userChatId, Guid teamId, string stage)
     {
@@ -91,6 +86,10 @@ public class DbDriver : IDbDriver
     //         Count = product.Count
     //     };
     // }
+
+    public IEnumerable<ProductTable> GetProductsByTeamId(Guid teamId)
+        => db.Products
+            .Where(productTable => productTable.TeamId == teamId);
 
     public void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId)
     {
@@ -139,16 +138,18 @@ public class DbDriver : IDbDriver
         db.Bindings.Add(binding);
         db.SaveChanges();
     }
-    
-    public bool IsUserSentRequisite(long userChatId) => 
-        db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))!.TelephoneNumber != null;
+
+    public bool IsUserSentRequisite(long userChatId)
+        => db.Users
+            .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))
+            !.TelephoneNumber != null;
 
     public Dictionary<long, double> GetRequisitesAndDebts(long chatId, Guid teamId)
     {
         var whomOwes2AmountOwedMoney = new Dictionary<long, double>();
         var productIds = GetProductBindingsByUserChatId(chatId, teamId)
             .Select(userProductTable => userProductTable.ProductId).ToList();
-            
+
         foreach (var productId in productIds)
         {
             var buyerChatId = GetBuyerChatId(productId);
@@ -168,31 +169,33 @@ public class DbDriver : IDbDriver
     public string GetUsernameByChatId(long chatId) =>
         db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))!.Username!;
 
-    private int CountPeopleBuyProduct(Guid productId) 
+    private int CountPeopleBuyProduct(Guid productId)
         => db.Bindings.Count(binding => binding.ProductId.Equals(productId));
 
     private long GetBuyerChatId(Guid productId) =>
         db.Products.FirstOrDefault(productTable => productTable.Id.Equals(productId))!.BuyerChatId;
-    
-    public string GetPhoneNumberByChatId(long chatId) => 
+
+    public string GetPhoneNumberByChatId(long chatId) =>
         db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))!.TelephoneNumber!;
 
     public bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) =>
-        db.Users.Where(userTable => userTable.TeamId.Equals(teamId))
-            .Count(userTable => userTable.TelephoneNumber != null) == 
-        db.Users.Count(userTable => userTable.TeamId.Equals(teamId));
+        db.Users
+            .Where(userTable => userTable.TeamId.Equals(teamId))
+            .Count(userTable => userTable.TelephoneNumber != null)
+        == db.Users
+            .Count(userTable => userTable.TeamId.Equals(teamId));
 
     public string GetTypeRequisites(long chatId)
     {
-        if (db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))?.TinkoffLink != null)
-            return "tinkoffLink";
-        return "phoneNumber";
+        return db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))?.TinkoffLink != null
+            ? "tinkoffLink"
+            : "phoneNumber";
     }
 
     public bool IsTeamReady(Guid teamId) =>
         db.Users
             .Where(userTable => userTable.TeamId.Equals(teamId))
-            .Count(userTable => userTable.IsReady) == 
+            .Count(userTable => userTable.IsReady) ==
         db.Users.Count(userTable => userTable.TeamId.Equals(teamId));
 
     public List<long> GetUsersChatIdInTeam(Guid teamId) =>
