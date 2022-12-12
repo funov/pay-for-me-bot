@@ -197,4 +197,27 @@ public class DbDriver : IDbDriver
 
     public List<long> GetUsersChatIdInTeam(Guid teamId) =>
         db.Users.Select(userTable => userTable.UserChatId).ToList();
+
+    public void DeleteTeamInDb(Guid teamId)
+    {
+        var userTables = db.Users.Where(userTable => userTable.TeamId.Equals(teamId)).ToList();
+        foreach (var userTable in userTables)
+        {
+            db.Users.Remove(userTable);
+        }
+
+        var productTables = db.Products.Where(productTable => productTable.TeamId.Equals(teamId)).ToList();
+        foreach (var productTable in productTables)
+        {
+            db.Products.Remove(productTable);
+        }
+
+        var bindingTables = db.Bindings.Where(bindingTable => bindingTable.TeamId.Equals(teamId)).ToList();
+        foreach (var bindingTable in bindingTables)
+        {
+            db.Bindings.Remove(bindingTable);
+        }
+
+        db.SaveChanges();
+    }
 }

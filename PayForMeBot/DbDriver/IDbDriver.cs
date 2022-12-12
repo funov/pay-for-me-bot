@@ -27,4 +27,5 @@ public interface IDbDriver
     bool DoesAllTeamUsersHavePhoneNumber(Guid teamId);
     string GetTypeRequisites(long chatId);
     List<long> GetUsersChatIdInTeam(Guid teamId);
+    void DeleteTeamInDb(Guid teamId);
 }

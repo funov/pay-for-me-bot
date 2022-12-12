@@ -67,14 +67,17 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                         chatId: chatId,
                         text: "Можешь переходить к оплате. Был рад помочь, до встречи!🥰🥰",
                         cancellationToken: cancellationToken);
-
+                    
+                    dbDriver.ChangeUserStage(chatId, teamId, "start");
                     await client.SendTextMessageAsync(
                         chatId: chatId,
                         text: "Создай или присоединись к команде!",
                         replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                         cancellationToken: cancellationToken);
-
-                    dbDriver.ChangeUserStage(chatId, teamId, "start");
+                    
+                    dbDriver.DeleteTeamInDb(teamId);
+                    
+                    
                 }
                 else
                 {
@@ -138,16 +141,16 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             var buyerUserName = dbDriver.GetUsernameByChatId(pair.Key);
             var typeRequisites = dbDriver.GetTypeRequisites(pair.Key);
 
+            var phoneNumber = dbDriver.GetPhoneNumberByChatId(pair.Key);
             if (typeRequisites == "phoneNumber")
             {
-                var phoneNumber = dbDriver.GetPhoneNumberByChatId(pair.Key);
                 message.Append(GetRequisitesAndDebtsStringFormat(buyerUserName, phoneNumber, pair.Value));
             }
 
             if (typeRequisites == "tinkoffLink")
             {
                 var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(pair.Key);
-                message.Append(GetRequisitesAndDebtsStringFormat(buyerUserName, tinkoffLink!, pair.Value));
+                message.Append(GetRequisitesAndDebtsStringFormat(buyerUserName, phoneNumber, pair.Value, tinkoffLink!));
             }
         }
 
@@ -214,13 +217,15 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
     private static bool IsTinkoffLinkValid(string tinkoffLink)
     {
-        var regex = new Regex(@"https://www.tinkof.ru/rm/[a-z]+.[a-z]+[0-9]+/[a-zA-z0-9]+");
+        var regex = new Regex(@"https://www.tinkoff.ru/rm/[a-z]+.[a-z]+[0-9]+/[a-zA-z0-9]+");
         var matches = regex.Matches(tinkoffLink);
         return matches.Count == 1;
     }
 
     private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
 
-    private static string GetRequisitesAndDebtsStringFormat(string buyerUserName, string requisites, double money)
-        => string.Join(" ", $"@{buyerUserName}", $"<code>{requisites}</code> —", $"{money}руб.\n");
+    private static string GetRequisitesAndDebtsStringFormat(string buyerUserName, string phoneNumber, 
+        double money, string tinknoffLink="")
+        => string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —",  
+            $"<code>{tinknoffLink}</code> —", $"{money}руб.\n");
 }
