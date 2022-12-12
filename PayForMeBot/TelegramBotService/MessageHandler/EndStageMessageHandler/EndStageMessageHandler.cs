@@ -231,7 +231,9 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
     private static string GetRequisitesAndDebtsStringFormat(string buyerUserName, string phoneNumber,
         double money, string tinkoffLink = "")
-        => string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —",
+        => tinkoffLink.Equals(string.Empty) 
+            ? string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —", $"{money}руб.\n") 
+            : string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —",
             $"<code>{tinkoffLink}</code> —", $"{money}руб.\n");
 
 }
