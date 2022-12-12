@@ -47,7 +47,7 @@ public class TelegramBotService : ITelegramBotService
 
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = new[] {UpdateType.Message, UpdateType.CallbackQuery},
+            AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery },
             ThrowPendingUpdates = true
         };
 
@@ -72,12 +72,26 @@ public class TelegramBotService : ITelegramBotService
         // TODO refactoring :(
 
         string currentStage;
+        long chatId;
 
         try
         {
-            var chatId = update.Message!.Chat.Id;
-            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-            currentStage = dbDriver.GetUserStage(chatId, teamId)!;
+            if (update.Message != null)
+            {
+                chatId = update.Message!.Chat.Id;
+                var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+                currentStage = dbDriver.GetUserStage(chatId, teamId)!;
+            }
+            else if (update.CallbackQuery != null)
+            {
+                chatId = update.CallbackQuery!.From.Id;
+                var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+                currentStage = dbDriver.GetUserStage(chatId, teamId)!;
+            }
+            else
+            {
+                currentStage = "start";
+            }
         }
         catch (NullReferenceException)
         {
@@ -86,7 +100,7 @@ public class TelegramBotService : ITelegramBotService
 
         switch (update.Message)
         {
-            case {Type: MessageType.Text}:
+            case { Type: MessageType.Text }:
                 switch (currentStage)
                 {
                     case "start":
@@ -102,7 +116,7 @@ public class TelegramBotService : ITelegramBotService
 
                 break;
 
-            case {Type: MessageType.Photo}:
+            case { Type: MessageType.Photo }:
                 if (currentStage == "middle")
                     await middleHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
                 break;
@@ -110,9 +124,13 @@ public class TelegramBotService : ITelegramBotService
 
         switch (update)
         {
-            case {Type: UpdateType.CallbackQuery}:
+            case { Type: UpdateType.CallbackQuery }:
                 if (update.CallbackQuery != null && currentStage is "middle" or "start")
-                    await middleHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken );
+                {
+                    log.LogInformation("{userName}", currentStage);
+                    await middleHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
+                }
+
                 break;
         }
     }
