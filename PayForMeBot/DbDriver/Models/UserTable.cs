@@ -9,7 +9,6 @@ public class UserTable
     public string? Username { get; set; }
     public Guid TeamId { get; set; }
     public string? TinkoffLink { get; set; }
-    public string? TelephoneNumber { get; set; }
+    public string? PhoneNumber { get; set; }
     public string? Stage { get; set; }
-    public bool IsReady { get; set; }
 }

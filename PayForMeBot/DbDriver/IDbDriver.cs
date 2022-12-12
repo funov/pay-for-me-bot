@@ -26,7 +26,5 @@ public interface IDbDriver
     string GetUsernameByChatId(long chatId);
     bool DoesAllTeamUsersHavePhoneNumber(Guid teamId);
     string GetTypeRequisites(long chatId);
-    bool IsTeamReady(Guid teamId);
     List<long> GetUsersChatIdInTeam(Guid teamId);
-    void UserIsReady(long chatId);
 }

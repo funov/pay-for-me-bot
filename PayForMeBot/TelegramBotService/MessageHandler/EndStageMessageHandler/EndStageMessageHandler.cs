@@ -54,9 +54,8 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             if (IsRequisiteValid(message.Text!))
             {
                 AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
-                dbDriver.UserIsReady(chatId);
-                
-                if (dbDriver.IsTeamReady(dbDriver.GetTeamIdByUserChatId(chatId)))
+
+                if (DoesAllTeamUsersHavePhoneNumber(teamId))
                 {
                     var teamUsers = dbDriver.GetUsersChatIdInTeam(teamId);
                     foreach (var teamUser in teamUsers)
@@ -105,7 +104,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
         var buyers2Money = dbDriver.GetRequisitesAndDebts(chatId, teamId);
 
-        if (AllTeamUsersHavePhoneNumber(teamId))
+        if (DoesAllTeamUsersHavePhoneNumber(teamId))
         {
             var message = MessageForUser(buyers2Money);
             await client.SendTextMessageAsync(
@@ -219,7 +218,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         return matches.Count == 1;
     }
 
-    private bool AllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
+    private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
 
     private static string StringFormat(string buyerUserName, string requisites, double money)
         => new StringBuilder()

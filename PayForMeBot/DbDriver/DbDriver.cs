@@ -19,7 +19,6 @@ public class DbDriver : IDbDriver
             TeamId = teamId,
             UserChatId = userChatId,
             Stage = "start",
-            IsReady = false
         };
 
         db.Users.Add(user);
@@ -44,7 +43,7 @@ public class DbDriver : IDbDriver
             throw new InvalidOperationException($"User {userChatId} not exist");
 
         userTable.TinkoffLink = tinkoffLink;
-        userTable.TelephoneNumber = telephoneNumber;
+        userTable.PhoneNumber = telephoneNumber;
 
         db.SaveChanges();
     }
@@ -142,7 +141,7 @@ public class DbDriver : IDbDriver
     public bool IsUserSentRequisite(long userChatId)
         => db.Users
             .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))
-            !.TelephoneNumber != null;
+            !.PhoneNumber != null;
 
     public Dictionary<long, double> GetRequisitesAndDebts(long chatId, Guid teamId)
     {
@@ -176,12 +175,12 @@ public class DbDriver : IDbDriver
         db.Products.FirstOrDefault(productTable => productTable.Id.Equals(productId))!.BuyerChatId;
 
     public string GetPhoneNumberByChatId(long chatId) =>
-        db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))!.TelephoneNumber!;
+        db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))!.PhoneNumber!;
 
     public bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) =>
         db.Users
             .Where(userTable => userTable.TeamId.Equals(teamId))
-            .Count(userTable => userTable.TelephoneNumber != null)
+            .Count(userTable => userTable.PhoneNumber != null)
         == db.Users
             .Count(userTable => userTable.TeamId.Equals(teamId));
 
@@ -192,19 +191,6 @@ public class DbDriver : IDbDriver
             : "phoneNumber";
     }
 
-    public bool IsTeamReady(Guid teamId) =>
-        db.Users
-            .Where(userTable => userTable.TeamId.Equals(teamId))
-            .Count(userTable => userTable.IsReady) ==
-        db.Users.Count(userTable => userTable.TeamId.Equals(teamId));
-
     public List<long> GetUsersChatIdInTeam(Guid teamId) =>
         db.Users.Select(userTable => userTable.UserChatId).ToList();
-
-    public void UserIsReady(long chatId)
-    {
-        var userTable = db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId));
-        userTable!.IsReady = true;
-        db.SaveChanges();
-    }
 }
