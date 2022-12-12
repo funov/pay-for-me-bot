@@ -163,8 +163,14 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
             if (products != null)
             {
-                await SendProductsMessagesAsync(client, chatId, userName, products, cancellationToken);
-                return;
+                var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+                var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+                foreach (var teamUserChatId in teamUserChatIds)
+                {
+                    var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
+                    await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, products, cancellationToken);
+                    return;
+                }
             }
         }
         catch (ReceiptNotFoundException)
