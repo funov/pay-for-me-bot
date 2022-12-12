@@ -11,18 +11,20 @@ public class Product
     public int Count { get; set; }
 
     public string? Name { get; set; }
-    
+
     public static bool TryParse(string message, out Product product)
     {
-        if (message.Split().Length > 2)
+        var splitMessage = message.Split(new[] {"\r\n", "\r", "\n", " "}, StringSplitOptions.RemoveEmptyEntries);
+        if (splitMessage.Length > 2)
         {
-            if (double.TryParse(message.Split()[message.Split().Length - 1].Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out var price) &&
-                int.TryParse(message.Split()[message.Split().Length - 2], out var count))
+            if (double.TryParse(splitMessage[^1].Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture,
+                    out var price) &&
+                int.TryParse(splitMessage[^2], out var count))
             {
-                product = new Product()
+                product = new Product
                 {
                     Count = count,
-                    Name = string.Join(" ", message.Split().Take(message.Split().Length - 2)),
+                    Name = string.Join(" ", splitMessage.Take(splitMessage.Length - 2)),
                     Price = price,
                     TotalPrice = price
                 };
