@@ -51,7 +51,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
             case "/start":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Создай или присоединись к команде!",
+                    text: "Создай команду или присоединись к ней!",
                     replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                     cancellationToken: cancellationToken);
                 break;

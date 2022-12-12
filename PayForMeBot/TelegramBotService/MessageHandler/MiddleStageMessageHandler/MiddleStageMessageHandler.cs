@@ -94,12 +94,14 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
             log.LogInformation("@{userName} added product {productGuid} in chat {chatId}",
                 userName, productGuid, chatId);
-
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: $"{dbProduct.Name} {dbProduct.Count} шт за {dbProduct.Price} р.",
-                cancellationToken: cancellationToken
-            );
+            
+            var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+            foreach (var teamUserChatId in teamUserChatIds)
+            {
+                var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
+                await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, 
+                    new List<Product>{dbProduct}, new List<Guid>{productGuid}, cancellationToken);
+            }
         }
         else
         {
