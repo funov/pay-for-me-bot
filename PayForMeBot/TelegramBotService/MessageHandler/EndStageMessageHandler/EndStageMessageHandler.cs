@@ -195,9 +195,16 @@ public class EndStageMessageHandler : IEndStageMessageHandler
     {
         text = text.Trim();
         var requisites = text.Split("\n");
-        if (requisites.Length != 2)
+        if (requisites.Length == 2)
         {
-            dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, text);
+            if (IsTelephoneNumberValid(requisites[0]))
+            {
+                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, requisites[0], requisites[1]);
+            }
+            else
+            {
+                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, requisites[1], requisites[0]);
+            }
         }
         else
         {
