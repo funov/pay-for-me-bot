@@ -56,28 +56,29 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
                 if (DoesAllTeamUsersHavePhoneNumber(teamId))
                 {
+                    var teamUsers2Buyers2Money = dbDriver.GetRequisitesAndDebts(teamId);
+                    foreach (var pair in teamUsers2Buyers2Money)
+                    {
+                        Console.WriteLine("user: " + pair.Key);
+                        foreach (var value in pair.Value)
+                        {
+                            Console.WriteLine("кому: "+value.Key+"сколько "+value.Value);
+                        }
+                    }
                     var teamChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
-
+                
                     foreach (var teamChatId in teamChatIds)
                     {
-                        await SendRequisitesAndDebts(client, teamChatId, teamId, cancellationToken);
-                    }
+                        await SendRequisitesAndDebts(client, teamChatId, cancellationToken, teamUsers2Buyers2Money[teamChatId]);
 
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: "Можешь переходить к оплате. Был рад помочь, до встречи!🥰🥰",
-                        cancellationToken: cancellationToken);
-                    
-                    dbDriver.ChangeUserStage(chatId, teamId, "start");
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: "Создай или присоединись к команде!",
-                        replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
-                        cancellationToken: cancellationToken);
-                    
+                        dbDriver.ChangeUserStage(chatId, teamId, "start");
+                        await client.SendTextMessageAsync(
+                            chatId: chatId,
+                            text: "Создай или присоединись к команде!",
+                            replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
+                            cancellationToken: cancellationToken);
+                    }
                     dbDriver.DeleteTeamInDb(teamId);
-                    
-                    
                 }
                 else
                 {
@@ -114,45 +115,53 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         }
     }
 
-    private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId, Guid teamId,
-        CancellationToken cancellationToken)
+    private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId,
+        CancellationToken cancellationToken, Dictionary<long, double> buyers2Money)
     {
-        var buyers2Money = dbDriver.GetRequisitesAndDebts(chatId, teamId);
-
         var message = MessageForUser(buyers2Money);
 
-        await client.SendTextMessageAsync(
+            await client.SendTextMessageAsync(
             chatId: chatId,
             text: message,
             parseMode: ParseMode.Html,
             cancellationToken: cancellationToken
         );
+
+        if (message != "Ты никому не должен! 🤩🤩🤩")
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Можешь переходить к оплате. Был рад помочь, до встречи!🥰🥰",
+                cancellationToken: cancellationToken);
+        }
     }
 
     private string MessageForUser(Dictionary<long, double> buyers2Money)
     {
         var message = new StringBuilder();
 
-        if (buyers2Money.Keys.Count == 0)
+        if (buyers2Money.Count == 0)
             return "Ты никому не должен! 🤩🤩🤩";
 
-        foreach (var pair in buyers2Money)
+        
+        foreach (var value in buyers2Money)
         {
-            var buyerUserName = dbDriver.GetUsernameByChatId(pair.Key);
-            var typeRequisites = dbDriver.GetTypeRequisites(pair.Key);
-
-            var phoneNumber = dbDriver.GetPhoneNumberByChatId(pair.Key);
+            var buyerUsername = dbDriver.GetUsernameByChatId(value.Key);
+            var typeRequisites = dbDriver.GetTypeRequisites(value.Key);
+            var phoneNumber = dbDriver.GetPhoneNumberByChatId(value.Key);
+            
             if (typeRequisites == "phoneNumber")
             {
-                message.Append(GetRequisitesAndDebtsStringFormat(buyerUserName, phoneNumber, pair.Value));
+                message.Append(GetRequisitesAndDebtsStringFormat(buyerUsername, phoneNumber, value.Value));
             }
 
             if (typeRequisites == "tinkoffLink")
             {
-                var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(pair.Key);
-                message.Append(GetRequisitesAndDebtsStringFormat(buyerUserName, phoneNumber, pair.Value, tinkoffLink!));
+                var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(value.Key);
+                message.Append(GetRequisitesAndDebtsStringFormat(buyerUsername, phoneNumber, value.Value, tinkoffLink!));
             }
         }
+        
 
         return "Ты должен заплатить:\n" + message;
     }
@@ -228,4 +237,5 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         double money, string tinknoffLink="")
         => string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —",  
             $"<code>{tinknoffLink}</code> —", $"{money}руб.\n");
+
 }

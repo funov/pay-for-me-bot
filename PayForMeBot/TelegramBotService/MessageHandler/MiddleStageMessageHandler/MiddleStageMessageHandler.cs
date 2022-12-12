@@ -242,20 +242,20 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             var chatId = callback.From.Id;
             var userName = callback.From.Username;
             var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-
+            var id = new Guid();
             if (inlineKeyboard[2].Text == "🛒")
             {
                 log.LogInformation("User @{userName} decided to pay for the product {ProductId} in chat {chatId}",
                     userName, productId, chatId);
-
-                dbDriver.AddUserProductBinding(chatId, teamId, productId);
+                
+                dbDriver.AddUserProductBinding(id, chatId, teamId, productId);
             }
             else
             {
                 log.LogInformation("User @{userName} refused to pay for the product {ProductId} in chat {chatId}",
                     userName, productId, chatId);
 
-                dbDriver.DeleteUserProductBinding(chatId, teamId, productId);
+                dbDriver.DeleteUserProductBinding(id, chatId, teamId, productId);
             }
 
             await client.EditMessageTextAsync(

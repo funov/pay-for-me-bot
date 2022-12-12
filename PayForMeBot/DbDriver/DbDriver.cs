@@ -1,3 +1,4 @@
+using System.Runtime.Serialization.Formatters.Binary;
 using Microsoft.Extensions.Configuration;
 using PayForMeBot.DbDriver.Models;
 using Product = PayForMeBot.ReceiptApiClient.Models.Product;
@@ -90,13 +91,10 @@ public class DbDriver : IDbDriver
         => db.Products
             .Where(productTable => productTable.TeamId == teamId);
 
-    public void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId)
+    public void DeleteUserProductBinding(Guid id, long userChatId, Guid teamId, Guid productId)
     {
         var binding = db.Bindings
-            .FirstOrDefault(userProductTable
-                => userProductTable.UserChatId.Equals(userChatId)
-                   && userProductTable.TeamId.Equals(teamId)
-                   && userProductTable.ProductId.Equals(productId));
+            .FirstOrDefault(binding => binding.Id.Equals(id));
 
         db.Bindings.Remove(binding!);
         db.SaveChanges();
@@ -131,9 +129,15 @@ public class DbDriver : IDbDriver
         }
     }
 
-    public void AddUserProductBinding(long userChatId, Guid teamId, Guid productId)
+    public void AddUserProductBinding(Guid id, long userChatId, Guid teamId, Guid productId)
     {
-        var binding = new UserProductTable { UserChatId = userChatId, ProductId = productId, TeamId = teamId };
+        var binding = new UserProductTable
+        {
+            Id = id, 
+            UserChatId = userChatId, 
+            ProductId = productId, 
+            TeamId = teamId
+        };
         db.Bindings.Add(binding);
         db.SaveChanges();
     }
@@ -143,29 +147,33 @@ public class DbDriver : IDbDriver
             .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))
             !.PhoneNumber != null;
 
-    public Dictionary<long, double> GetRequisitesAndDebts(long chatId, Guid teamId)
+    public Dictionary<long, Dictionary<long, double>> GetRequisitesAndDebts(Guid teamId)
     {
-        var whomOwes2AmountOwedMoney = new Dictionary<long, double>();
+        var whomOwes2AmountOwedMoney = new Dictionary<long, Dictionary<long, double>>();
+        var teamUserChatIds = GetUsersChatIdInTeam(teamId);
 
-        var productIds = GetProductBindingsByUserChatId(chatId, teamId)
-            .Select(userProductTable => userProductTable.ProductId).ToList();
-
-        foreach (var productId in productIds)
+        foreach (var teamUserChatId in teamUserChatIds)
         {
-            var buyerChatId = GetBuyerChatId(productId);
-
-            if (buyerChatId == chatId)
-                continue;
-
-            var amount = db.Products.FirstOrDefault(productTable
-                => productTable.Id.Equals(productId))!.TotalPrice / CountPeopleBuyProduct(productId);
-
-            if (whomOwes2AmountOwedMoney.ContainsKey(buyerChatId))
-                whomOwes2AmountOwedMoney[buyerChatId] += amount;
-            else
-                whomOwes2AmountOwedMoney[buyerChatId] = amount;
+            var productIds = GetProductBindingsByUserChatId(teamUserChatId, teamId)
+                .Select(userProductTable => userProductTable.ProductId).ToList();
+            whomOwes2AmountOwedMoney[teamUserChatId] = new Dictionary<long, double>();
+            foreach (var productId in productIds)
+            {
+                var buyerChatId = GetBuyerChatId(productId);
+                var amount = db.Products.FirstOrDefault(productTable
+                    => productTable.Id.Equals(productId))!.TotalPrice / CountPeopleBuyProduct(productId);
+                if (buyerChatId == teamUserChatId)
+                    continue;
+                if (!whomOwes2AmountOwedMoney[teamUserChatId].ContainsKey(buyerChatId))
+                {
+                    whomOwes2AmountOwedMoney[teamUserChatId][buyerChatId] = amount;
+                }
+                else
+                {
+                    whomOwes2AmountOwedMoney[teamUserChatId][buyerChatId] += amount;
+                }
+            }
         }
-
         return whomOwes2AmountOwedMoney;
     }
 
