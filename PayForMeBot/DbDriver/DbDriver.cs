@@ -163,12 +163,21 @@ public class DbDriver : IDbDriver
                 var buyerChatId = GetBuyerChatId(productId);
                 var amount = db.Products.FirstOrDefault(productTable
                     => productTable.Id.Equals(productId))!.TotalPrice / CountPeopleBuyProduct(productId);
-
+                Console.WriteLine(buyerChatId);
+                Console.WriteLine(teamUserChatId);
                 if (buyerChatId == teamUserChatId)
                 {
                     continue;
                 }
-                whomOwes2AmountOwedMoney[teamUserChatId][buyerChatId] += amount;
+
+                if (!whomOwes2AmountOwedMoney[teamUserChatId].ContainsKey(buyerChatId))
+                {
+                    whomOwes2AmountOwedMoney[teamUserChatId][buyerChatId] = amount;
+                }
+                else
+                {
+                    whomOwes2AmountOwedMoney[teamUserChatId][buyerChatId] += amount;
+                }
             }
         }
         return whomOwes2AmountOwedMoney;

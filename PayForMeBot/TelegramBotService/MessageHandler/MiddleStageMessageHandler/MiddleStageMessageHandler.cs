@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using PayForMeBot.DbDriver;
+using PayForMeBot.DbDriver.Models;
 using PayForMeBot.ReceiptApiClient;
 using PayForMeBot.ReceiptApiClient.Exceptions;
 using PayForMeBot.ReceiptApiClient.Models;
@@ -92,8 +93,6 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         {
             var productGuid = Guid.NewGuid();
 
-            dbDriver.AddProduct(productGuid, dbProduct, productGuid, chatId, teamId);
-
             log.LogInformation("@{userName} added product {productGuid} in chat {chatId}",
                 userName, productGuid, chatId);
 
@@ -166,10 +165,11 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             {
                 var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
                 var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+                var productIds = GetProductIds(products, chatId, teamId);
                 foreach (var teamUserChatId in teamUserChatIds)
                 {
                     var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
-                    await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, products, cancellationToken);
+                    await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, products.ToList(), productIds, cancellationToken);
                 }
             }
             return;
@@ -193,24 +193,18 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     }
 
     private async Task SendProductsMessagesAsync(ITelegramBotClient client, long chatId, string? userName,
-        IEnumerable<Product> products, CancellationToken cancellationToken)
+        List<Product> products, List<Guid> productIds, CancellationToken cancellationToken)
     {
-        var receiptGuid = Guid.NewGuid();
-
-        foreach (var product in products)
+        for (int i = 0; i < products.Count; i++)
         {
-            var text = $"{product.Name}";
-            var productId = Guid.NewGuid();
-
+            var text = $"{products[i].Name}";
+            var productId = productIds[i];
+            
             var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
                 productId,
-                $"{product.TotalPrice} р.",
-                $"{product.Count} шт.",
+                $"{products[i].TotalPrice} р.",
+                $"{products[i].Count} шт.",
                 "🛒");
-
-            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-
-            dbDriver.AddProduct(productId, product, receiptGuid, chatId, teamId);
 
             log.LogInformation("Send product {productId} inline button to @{userName} in chat {chatId}",
                 productId, userName, chatId);
@@ -268,5 +262,19 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         }
         else
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
+    }
+
+    private List<Guid> GetProductIds(Product[] products, long chatId, Guid teamId)
+    {
+        var productsIds = new List<Guid>();
+        foreach (var product in products)
+        {
+            var receiptGuid = Guid.NewGuid();
+            var productId = Guid.NewGuid();
+            dbDriver.AddProduct(productId, product, receiptGuid, chatId, teamId);
+            productsIds.Add(productId);
+        }
+
+        return productsIds;
     }
 }
