@@ -112,20 +112,15 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     );
                     break;
                 }
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Ты уже в команде!",
-                    cancellationToken: cancellationToken
-                );
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Можете начинать писать продукты!",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken
-                );
-                break;
+                else
+                {
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Ты уже в команде!",
+                        cancellationToken: cancellationToken
+                    );
+                    break;
+                }
         }
 
         // TODO Дыра, что чел может обойти все это и просто скинуть Guid и присоединиться к команде
@@ -140,8 +135,10 @@ public class StartStageMessageHandler : IStartStageMessageHandler
 
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: $"Можете начинать писать продукты!",
-                replyMarkup: new ReplyKeyboardRemove(),
+                text: $"Можешь начинать писать продукты!" +
+                      $"\n\n" +
+                      $"Когда закончишь вводить/выбирать продукты, нажми на кнопку внизу ⬇",
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Перейти к разделению счёта💴" }),
                 cancellationToken: cancellationToken
             );
 
