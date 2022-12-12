@@ -98,7 +98,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: $"Принял, {dbProduct.Name} {dbProduct.Count} шт за {dbProduct.Price} р.",
+                text: $"{dbProduct.Name} {dbProduct.Count} шт за {dbProduct.Price} р.",
                 cancellationToken: cancellationToken
             );
         }
@@ -169,9 +169,9 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 {
                     var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
                     await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, products, cancellationToken);
-                    return;
                 }
             }
+            return;
         }
         catch (ReceiptNotFoundException)
         {

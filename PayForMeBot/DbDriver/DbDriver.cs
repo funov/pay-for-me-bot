@@ -196,7 +196,9 @@ public class DbDriver : IDbDriver
     }
 
     public List<long> GetUsersChatIdInTeam(Guid teamId) =>
-        db.Users.Select(userTable => userTable.UserChatId).ToList();
+        db.Users
+            .Where(userTable => userTable.TeamId.Equals(teamId))
+            .Select(userTable => userTable.UserChatId).ToList();
 
     public void DeleteTeamInDb(Guid teamId)
     {
