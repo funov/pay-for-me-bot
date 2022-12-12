@@ -4,7 +4,7 @@ using PayForMeBot.DbDriver;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
-
+using Telegram.Bot.Types.Enums;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 
@@ -37,40 +37,47 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
             message.Text, chatId, userName);
 
-        // Ждем сразу телефон и тиньк ссылку
-        // Но перед этим смотрим в бд есть ли это у юзера, если есть то игнорим
         if (!IsUserSentRequisite(chatId))
         {
             var teamId = dbDriver.GetTeamIdByUserChatId(message.Chat.Id);
+
             if (IsRequisiteValid(message.Text!))
             {
+                log.LogInformation("Requisite is valid '{messageText}' in chat {chatId} from @{userName}",
+                    message.Text, chatId, userName);
+
                 AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
 
                 if (DoesAllTeamUsersHavePhoneNumber(teamId))
                 {
-                    var teamUsers = dbDriver.GetUsersChatIdInTeam(teamId);
-                    foreach (var teamUser in teamUsers)
+                    var teamChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+
+                    foreach (var teamChatId in teamChatIds)
                     {
-                        await SendRequisitesAndDebts(client, teamUser, cancellationToken);
+                        await SendRequisitesAndDebts(client, teamChatId, teamId, cancellationToken);
                     }
+
                     await client.SendTextMessageAsync(
                         chatId: chatId,
                         text: "Можешь переходить к оплате. Был рад помочь, до встречи!🥰🥰",
                         cancellationToken: cancellationToken);
+
                     dbDriver.ChangeUserStage(chatId, teamId, "start");
                 }
                 else
                 {
                     await client.SendTextMessageAsync(
                         chatId: chatId,
-                        text: "Ждем остальных участников." +
-                              "Как только все отправят, я рассчитаю чеки и вышлю реквизиты",
+                        text: "Ждем остальных участников 💤💤💤\n" +
+                              "Как только все отправят, я рассчитаю чеки и вышлю реквизиты 😎😎😎",
                         cancellationToken: cancellationToken);
                 }
             }
-
             else
             {
+                log.LogInformation("Requisite isn't valid '{messageText}' in chat {chatId} from @{userName}",
+                    message.Text, chatId, userName);
+
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Ты отправил неверные реквизиты, попробуй еще раз",
@@ -89,31 +96,19 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         }
     }
 
-    private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId,
+    private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId, Guid teamId,
         CancellationToken cancellationToken)
     {
-        var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
         var buyers2Money = dbDriver.GetRequisitesAndDebts(chatId, teamId);
 
-        if (DoesAllTeamUsersHavePhoneNumber(teamId))
-        {
-            var message = MessageForUser(buyers2Money);
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: message,
-                cancellationToken: cancellationToken
-            );
+        var message = MessageForUser(buyers2Money);
 
-            dbDriver.ChangeUserStage(chatId, teamId, "start");
-        }
-        else
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Кто-то не указал свой номер телефона, его нужно ввести и попробовать снова",
-                cancellationToken: cancellationToken
-            );
-        }
+        await client.SendTextMessageAsync(
+            chatId: chatId,
+            text: message,
+            parseMode: ParseMode.Html,
+            cancellationToken: cancellationToken
+        );
     }
 
     private string MessageForUser(Dictionary<long, double> buyers2Money)
@@ -123,16 +118,17 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         {
             var buyerUserName = dbDriver.GetUsernameByChatId(pair.Key);
             var typeRequisites = dbDriver.GetTypeRequisites(pair.Key);
+
             if (typeRequisites == "phoneNumber")
             {
                 var phoneNumber = dbDriver.GetPhoneNumberByChatId(pair.Key);
-                message.Append(StringFormat(buyerUserName, phoneNumber, pair.Value));
+                message.Append(GetRequisitesAndDebtsStringFormat(buyerUserName, phoneNumber, pair.Value));
             }
 
             if (typeRequisites == "tinkoffLink")
             {
                 var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(pair.Key);
-                message.Append(StringFormat(buyerUserName, tinkoffLink!, pair.Value));
+                message.Append(GetRequisitesAndDebtsStringFormat(buyerUserName, tinkoffLink!, pair.Value));
             }
         }
 
@@ -205,10 +201,6 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
     private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
 
-    private static string StringFormat(string buyerUserName, string requisites, double money)
-        => new StringBuilder()
-            .Append("@" + buyerUserName + " ")
-            .Append(requisites + ": ")
-            .Append(money + "руб.\n")
-            .ToString();
+    private static string GetRequisitesAndDebtsStringFormat(string buyerUserName, string requisites, double money)
+        => string.Join(" ", $"@{buyerUserName}", $"<code>{requisites}</code> —", $"{money}руб.\n");
 }

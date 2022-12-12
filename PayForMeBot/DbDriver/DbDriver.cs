@@ -146,20 +146,24 @@ public class DbDriver : IDbDriver
     public Dictionary<long, double> GetRequisitesAndDebts(long chatId, Guid teamId)
     {
         var whomOwes2AmountOwedMoney = new Dictionary<long, double>();
+
         var productIds = GetProductBindingsByUserChatId(chatId, teamId)
             .Select(userProductTable => userProductTable.ProductId).ToList();
 
         foreach (var productId in productIds)
         {
             var buyerChatId = GetBuyerChatId(productId);
-            var amount = db.Products.FirstOrDefault(productTable =>
-                productTable.Id.Equals(productId))!.TotalPrice / CountPeopleBuyProduct(productId);
+
+            if (buyerChatId == chatId)
+                continue;
+
+            var amount = db.Products.FirstOrDefault(productTable
+                => productTable.Id.Equals(productId))!.TotalPrice / CountPeopleBuyProduct(productId);
+
             if (whomOwes2AmountOwedMoney.ContainsKey(buyerChatId))
                 whomOwes2AmountOwedMoney[buyerChatId] += amount;
             else
-            {
                 whomOwes2AmountOwedMoney[buyerChatId] = amount;
-            }
         }
 
         return whomOwes2AmountOwedMoney;
