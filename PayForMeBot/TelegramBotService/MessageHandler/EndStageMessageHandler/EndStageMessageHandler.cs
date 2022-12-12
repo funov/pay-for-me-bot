@@ -11,7 +11,7 @@ namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 
 public class EndStageMessageHandler : IEndStageMessageHandler
 {
-    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
+    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IDbDriver dbDriver;
@@ -60,10 +60,11 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                     var teamUsers2Buyers2Money = dbDriver.GetRequisitesAndDebts(teamId);
 
                     var teamChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
-                
+
                     foreach (var teamChatId in teamChatIds)
                     {
-                        await SendRequisitesAndDebts(client, teamChatId, cancellationToken, teamUsers2Buyers2Money[teamChatId]);
+                        await SendRequisitesAndDebts(client, teamChatId, cancellationToken,
+                            teamUsers2Buyers2Money[teamChatId]);
 
                         dbDriver.ChangeUserStage(chatId, teamId, "start");
                         await client.SendTextMessageAsync(
@@ -72,9 +73,8 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                             replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                             cancellationToken: cancellationToken);
                     }
+
                     dbDriver.DeleteTeamInDb(teamId);
-                    
-                    
                 }
                 else
                 {
@@ -116,7 +116,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
     {
         var message = MessageForUser(buyers2Money);
 
-            await client.SendTextMessageAsync(
+        await client.SendTextMessageAsync(
             chatId: chatId,
             text: message,
             parseMode: ParseMode.Html,
@@ -139,13 +139,13 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         if (buyers2Money.Count == 0)
             return "Ты никому не должен! 🤩🤩🤩";
 
-        
+
         foreach (var value in buyers2Money)
         {
             var buyerUsername = dbDriver.GetUsernameByChatId(value.Key);
             var typeRequisites = dbDriver.GetTypeRequisites(value.Key);
             var phoneNumber = dbDriver.GetPhoneNumberByChatId(value.Key);
-            
+
             if (typeRequisites == "phoneNumber")
             {
                 message.Append(GetRequisitesAndDebtsStringFormat(buyerUsername, phoneNumber, value.Value));
@@ -154,10 +154,10 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             if (typeRequisites == "tinkoffLink")
             {
                 var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(value.Key);
-                message.Append(GetRequisitesAndDebtsStringFormat(buyerUsername, phoneNumber, value.Value, tinkoffLink!));
+                message
+                    .Append(GetRequisitesAndDebtsStringFormat(buyerUsername, phoneNumber, value.Value, tinkoffLink!));
             }
         }
-        
 
         return "Ты должен заплатить:\n" + message;
     }
@@ -230,10 +230,10 @@ public class EndStageMessageHandler : IEndStageMessageHandler
     private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
 
     private static string GetRequisitesAndDebtsStringFormat(string buyerUserName, string phoneNumber,
-        double money, string tinkoffLink = "")
-        => tinkoffLink.Equals(string.Empty) 
-            ? string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —", $"{money}руб.\n") 
-            : string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —",
-            $"<code>{tinkoffLink}</code> —", $"{money}руб.\n");
-
+        double money, string? tinkoffLink = null)
+        => tinkoffLink == null
+            ? string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —", $"{money}руб.\n")
+            : string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code>,",
+                $"<code>{tinkoffLink}</code> —",
+                $"{money}руб.\n");
 }
