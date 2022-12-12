@@ -14,8 +14,6 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 {
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IDbDriver dbDriver;
-    private readonly IReceiptApiClient receiptApiClient;
-    private readonly IKeyboardMarkup keyboardMarkup; 
 
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
@@ -27,12 +25,9 @@ public class EndStageMessageHandler : IEndStageMessageHandler
            "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
            "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
-    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient,
-        IKeyboardMarkup keyboardMarkup, IDbDriver dbDriver)
+    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver)
     {
         this.log = log;
-        this.receiptApiClient = receiptApiClient;
-        this.keyboardMarkup = keyboardMarkup;
         this.dbDriver = dbDriver;
     }
 
@@ -50,12 +45,29 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             if (IsRequisiteValid(message.Text!))
             {
                 AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Твои реквизиты добавлены!",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Продолжить"}),
-                    cancellationToken: cancellationToken);
                 dbDriver.UserIsReady(chatId);
+                
+                if (dbDriver.IsTeamReady(dbDriver.GetTeamIdByUserChatId(chatId)))
+                {
+                    var teamUsers = dbDriver.GetUsersChatIdInTeam(teamId);
+                    foreach (var teamUser in teamUsers)
+                    {
+                        await SendRequisitesAndDebts(client, teamUser, cancellationToken);
+                    }
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Был рад помочь, до встречи!",
+                        cancellationToken: cancellationToken);
+                    dbDriver.ChangeUserStage(chatId, teamId, "start");
+                }
+                else
+                {
+                    await client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: "Ждем остальных участников." +
+                              "Как только все отправят, я рассчитаю чеки и вышлю реквизиты",
+                        cancellationToken: cancellationToken);
+                }
             }
 
             else
@@ -73,42 +85,6 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: HelpMessage,
-                    cancellationToken: cancellationToken);
-                return;
-            case "Продолжить":
-                if (IsUserSentRequisite(chatId))
-                {
-                    if (dbDriver.IsTeamReady(dbDriver.GetTeamIdByUserChatId(chatId)))
-                    {
-                        var teamId = dbDriver.GetTeamIdByUserChatId(message.Chat.Id);
-                        var teamUsers = dbDriver.GetUsersChatIdInTeam(teamId);
-                        foreach (var teamUser in teamUsers)
-                        {
-                            await SendRequisitesAndDebts(client, teamUser, cancellationToken);
-                        }
-                        await client.SendTextMessageAsync(
-                            chatId: chatId,
-                            text: "Был рад помочь, до встречи!",
-                            replyMarkup: new ReplyKeyboardRemove(),
-                            cancellationToken: cancellationToken
-                        );
-                        dbDriver.ChangeUserStage(chatId, teamId, "start");
-                        return;
-                    }
-                    else
-                    {
-                        await client.SendTextMessageAsync(
-                            chatId: chatId,
-                            text: "Ждем остальных участников." +
-                                  "Как только все отправят, я рассчитаю чеки и вышлю реквизиты",
-                            replyMarkup: new ReplyKeyboardRemove(),
-                            cancellationToken: cancellationToken);
-                        return;
-                    }
-                }
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Ты отправил неверные реквизиты, попробуй еще раз",
                     cancellationToken: cancellationToken);
                 return;
         }
