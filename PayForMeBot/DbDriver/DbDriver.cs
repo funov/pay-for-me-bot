@@ -12,15 +12,16 @@ public class DbDriver : IDbDriver
 
     public DbDriver(IConfiguration config) => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
-    public void AddUser(string userTgId, long userChatId, Guid teamId, string? spbLink)
+    public void AddUser(string userTgId, long userChatId, Guid teamId, string? tinkoffLink)
     {
         var user = new UserTable
         {
             Username = userTgId,
             TeamId = teamId,
             UserChatId = userChatId,
-            TinkoffLink = spbLink,
-            Stage = "start"
+            TinkoffLink = tinkoffLink,
+            Stage = "start",
+            IsReady = false
         };
 
         db.Users.Add(user);
@@ -139,10 +140,8 @@ public class DbDriver : IDbDriver
         db.SaveChanges();
     }
     
-    public bool IsUserSentRequisite(long userChatId) 
-        => db.Users.Where(userTable => userTable.UserChatId.Equals(userChatId) &&
-                                       userTable.TinkoffLink != null &&
-                                       userTable.TelephoneNumber != null).ToList().Count == 1;
+    public bool IsUserSentRequisite(long userChatId) => 
+        db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))!.TelephoneNumber != null;
 
     public Dictionary<long, double> GetRequisitesAndDebts(long chatId, Guid teamId)
     {
@@ -188,5 +187,21 @@ public class DbDriver : IDbDriver
         if (db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))?.TinkoffLink != null)
             return "tinkoffLink";
         return "phoneNumber";
+    }
+
+    public bool IsTeamReady(Guid teamId) =>
+        db.Users
+            .Where(userTable => userTable.TeamId.Equals(teamId))
+            .Count(userTable => userTable.IsReady) == 
+        db.Users.Count(userTable => userTable.TeamId.Equals(teamId));
+
+    public List<long> GetUsersChatIdInTeam(Guid teamId) =>
+        db.Users.Select(userTable => userTable.UserChatId).ToList();
+
+    public void UserIsReady(long chatId)
+    {
+        var userTable = db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId));
+        userTable!.IsReady = true;
+        db.SaveChanges();
     }
 }

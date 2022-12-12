@@ -39,6 +39,9 @@ public class StartStageMessageHandler : IStartStageMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId}", message.Text, chatId);
 
+        
+        
+        
         // TODO Брать их из массива (teamSelectionLabels)
         // TODO Добавить ограничение завершения только на лидера группы
         // TODO рефакторинг

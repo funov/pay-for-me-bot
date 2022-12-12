@@ -11,4 +11,5 @@ public class UserTable
     public string? TinkoffLink { get; set; }
     public string? TelephoneNumber { get; set; }
     public string? Stage { get; set; }
+    public bool IsReady { get; set; }
 }

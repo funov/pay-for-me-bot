@@ -4,6 +4,9 @@ using PayForMeBot.DbDriver;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
+using PayForMeBot.ReceiptApiClient;
+using PayForMeBot.TelegramBotService.KeyboardMarkup;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 
@@ -11,6 +14,8 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 {
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IDbDriver dbDriver;
+    private readonly IReceiptApiClient receiptApiClient;
+    private readonly IKeyboardMarkup keyboardMarkup; 
 
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
@@ -22,9 +27,12 @@ public class EndStageMessageHandler : IEndStageMessageHandler
            "4) Если ваше мероприятие закончилось и вы выбрали за что хотите платить, кто-то должен нажать " +
            "на кнопку «Завершить». Дальше всем придут суммы и реквизиты для переводов. 🎉🎉🎉";
 
-    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver)
+    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient,
+        IKeyboardMarkup keyboardMarkup, IDbDriver dbDriver)
     {
         this.log = log;
+        this.receiptApiClient = receiptApiClient;
+        this.keyboardMarkup = keyboardMarkup;
         this.dbDriver = dbDriver;
     }
 
@@ -36,6 +44,28 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         // Ждем сразу телефон и тиньк ссылку
         // Но перед этим смотрим в бд есть ли это у юзера, если есть то игнорим
+        if (!IsUserSentRequisite(chatId))
+        {
+            var teamId = dbDriver.GetTeamIdByUserChatId(message.Chat.Id);
+            if (IsRequisiteValid(message.Text!))
+            {
+                AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Твои реквизиты добавлены!",
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Продолжить"}),
+                    cancellationToken: cancellationToken);
+                dbDriver.UserIsReady(chatId);
+            }
+
+            else
+            {
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: "Ты отправил неверные реквизиты, попробуй еще раз",
+                    cancellationToken: cancellationToken);
+            }
+        }
 
         switch (message.Text!)
         {
@@ -45,58 +75,45 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                     text: HelpMessage,
                     cancellationToken: cancellationToken);
                 return;
-            case "Готово":
-                if (!IsUserSentRequisite(chatId))
+            case "Продолжить":
+                if (IsUserSentRequisite(chatId))
                 {
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: "Отправь свои реквизиты: " +
-                              "номер телефона и/или ссылку на Тинькофф",
-                        cancellationToken: cancellationToken);
-                    var teamId = dbDriver.GetTeamIdByUserChatId(message.Chat.Id);
-                    if (IsRequisiteValid(message.Text!))
+                    if (dbDriver.IsTeamReady(dbDriver.GetTeamIdByUserChatId(chatId)))
                     {
-                        AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
+                        var teamId = dbDriver.GetTeamIdByUserChatId(message.Chat.Id);
+                        var teamUsers = dbDriver.GetUsersChatIdInTeam(teamId);
+                        foreach (var teamUser in teamUsers)
+                        {
+                            await SendRequisitesAndDebts(client, teamUser, cancellationToken);
+                        }
+                        await client.SendTextMessageAsync(
+                            chatId: chatId,
+                            text: "Был рад помочь, до встречи!",
+                            replyMarkup: new ReplyKeyboardRemove(),
+                            cancellationToken: cancellationToken
+                        );
+                        dbDriver.ChangeUserStage(chatId, teamId, "start");
+                        return;
                     }
-
                     else
                     {
                         await client.SendTextMessageAsync(
                             chatId: chatId,
-                            text: "Ты отправил неверные реквизиты, попробуй еще раз",
+                            text: "Ждем остальных участников." +
+                                  "Как только все отправят, я рассчитаю чеки и вышлю реквизиты",
+                            replyMarkup: new ReplyKeyboardRemove(),
                             cancellationToken: cancellationToken);
+                        return;
                     }
-
-                    return;
                 }
-
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Ты уже нажал Готово, твои реквизиты приняты",
+                    text: "Ты отправил неверные реквизиты, попробуй еще раз",
                     cancellationToken: cancellationToken);
                 return;
         }
-
-        if (IsRequisiteValid(message.Text!))
-        {
-            // db.AddReceiveMoneyMethod(...);
-            log.LogInformation("User sent valid rm method {method}", message.Text);
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Ждем остальных участников. Как только все отправят, " +
-                      "я рассчитаю чеки и вышлю реквизиты",
-                cancellationToken: cancellationToken);
-        }
-        else
-        {
-            log.LogInformation("User sent invalid rm method {method}", message.Text);
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: "Ты скинул неправильные реквизиты. " +
-                      "Отправь мне ссылку на Тинькофф и/или номер телефона еще раз",
-                cancellationToken: cancellationToken);
-        }
     }
+
 
     private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId,
         CancellationToken cancellationToken)
@@ -106,9 +123,10 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         if (AllTeamUsersHavePhoneNumber(teamId))
         {
+            var message = MessageForUser(buyers2Money);
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: MessageForUser(buyers2Money),
+                text: message,
                 cancellationToken: cancellationToken
             );
             dbDriver.ChangeUserStage(chatId, teamId, "start");
@@ -117,7 +135,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: "Кто-то не указал свой номер телефон, его нужно ввести и попробовать снова",
+                text: "Кто-то не указал свой номер телефона, его нужно ввести и попробовать снова",
                 cancellationToken: cancellationToken
             );
         }
@@ -133,15 +151,13 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             if (typeRequisites == "phoneNumber")
             {
                 var phoneNumber = dbDriver.GetPhoneNumberByChatId(pair.Key);
-                message.Append(String.Format("{buyerUserName} {phoneNumber}: {money}\n",
-                    buyerUserName, phoneNumber, pair.Value));
+                message.Append(StringFormat(buyerUserName, phoneNumber, pair.Value));
             }
 
             if (typeRequisites == "tinkoffLink")
             {
                 var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(pair.Key);
-                message.Append(String.Format("{buyerUserName} {phoneNumber}: {money}",
-                    buyerUserName, tinkoffLink, pair.Value));
+                message.Append(StringFormat(buyerUserName, tinkoffLink!, pair.Value));
             }
         }
 
@@ -219,4 +235,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
 
     private bool AllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
+
+    private string StringFormat(string buyerUserName, string requisites, double money)
+        => new StringBuilder().Append("@"+buyerUserName + " ").Append(requisites + ": ").Append(money+"руб.\n").ToString();
 }

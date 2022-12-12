@@ -5,7 +5,7 @@ namespace PayForMeBot.DbDriver;
 
 public interface IDbDriver
 {
-    void AddUser(string userTgId, long userChatId, Guid teamId, string? spbLink);
+    void AddUser(string userTgId, long userChatId, Guid teamId, string? tinkoffLink);
     Guid GetTeamIdByUserChatId(long userChatId);
     bool IsUserInDb(long userChatId);
     void AddPhoneNumberAndTinkoffLink(long userChatId, Guid teamId, string? telephoneNumber, string? tinkoffLink=null);
@@ -26,4 +26,8 @@ public interface IDbDriver
     string GetUsernameByChatId(long chatId);
     bool DoesAllTeamUsersHavePhoneNumber(Guid teamId);
     string GetTypeRequisites(long chatId);
+
+    bool IsTeamReady(Guid teamId);
+    List<long> GetUsersChatIdInTeam(Guid teamId);
+    void UserIsReady(long chatId);
 }
