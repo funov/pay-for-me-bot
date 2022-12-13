@@ -124,7 +124,9 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             cancellationToken: cancellationToken
         );
 
-        if (message != "Ты никому не должен! 🤩🤩🤩")
+        if (message != "Ты никому не должен! 🤩🤩🤩" +
+            "\n\n"+
+            "Был рад помочь, до встречи!🥰🥰")
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
@@ -138,7 +140,9 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         var message = new StringBuilder();
 
         if (buyers2Money.Count == 0)
-            return "Ты никому не должен! 🤩🤩🤩";
+            return "Ты никому не должен! 🤩🤩🤩" +
+                   "\n\n"+
+                   "Был рад помочь, до встречи!🥰🥰";
         
         foreach (var value in buyers2Money)
         {

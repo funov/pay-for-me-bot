@@ -8,7 +8,7 @@ namespace PayForMeBot.DbDriver;
 public class DbDriver : IDbDriver
 {
     private readonly DbContext db;
-    private static HashSet<string> states = new() { "start", "middle", "end" };
+    private static HashSet<string> states = new() {"start", "middle", "end"};
 
     public DbDriver(IConfiguration config) => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
