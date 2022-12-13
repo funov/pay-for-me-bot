@@ -10,7 +10,7 @@ namespace PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler
 
 public class StartStageMessageHandler : IStartStageMessageHandler
 {
-    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+    private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
 
     private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
     private readonly IKeyboardMarkup keyboardMarkup;
@@ -42,7 +42,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
             message.Text, chatId, userName);
-        
+
         // TODO Добавить ограничение завершения только на лидера группы
         // TODO Рефакторинг
 
@@ -94,10 +94,16 @@ public class StartStageMessageHandler : IStartStageMessageHandler
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: $"Можешь начинать писать продукты!" +
+                    text: $"Можешь начинать добавлять продукты!" +
                           $"\n\n" +
+                          "Можешь прислать мне чек с продуктами, на котором хорошо виден куар-код. " +
+                          "Я его прочитаю и разошлю позиции из чека всем участникам команды."+
+                          "\n\n" +
+                          "Если чека нет, то можешь прислать мне сообщение с товарами, количеством и общей ценой. Например, вишневый пирог 5 399.99. " +
+                          "Или такси до центра 1 500. Я тут же пришлю товар всем участинкам команды" +
+                          "\n\n" +
                           $"Когда закончишь вводить/выбирать продукты, нажми на кнопку внизу ⬇",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Перейти к разделению счёта💴" }),
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Перейти к разделению счёта💴"}),
                     cancellationToken: cancellationToken
                 );
                 break;
@@ -138,7 +144,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 text: $"Можешь начинать писать продукты!" +
                       $"\n\n" +
                       $"Когда закончишь вводить/выбирать продукты, нажми на кнопку внизу ⬇",
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Перейти к разделению счёта💴" }),
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Перейти к разделению счёта💴"}),
                 cancellationToken: cancellationToken
             );
 
