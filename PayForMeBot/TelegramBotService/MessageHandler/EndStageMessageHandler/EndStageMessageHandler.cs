@@ -233,7 +233,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
     private static bool IsTelephoneNumberValid(string telephoneNumber)
     {
-        var regex = new Regex(@"^((8|\+7)[\- ]?)(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$");
+        var regex = new Regex(@"^((7|8|\+7)[\- ]?)(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$");
         var matches = regex.Matches(telephoneNumber);
         return matches.Count == 1;
     }

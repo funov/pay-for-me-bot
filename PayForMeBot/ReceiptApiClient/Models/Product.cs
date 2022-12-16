@@ -21,15 +21,18 @@ public class Product
                     out var price) &&
                 int.TryParse(splitMessage[^2], out var count))
             {
-                product = new Product
+                if (price > 0 && count > 0)
                 {
-                    Count = count,
-                    Name = string.Join(" ", splitMessage.Take(splitMessage.Length - 2)),
-                    Price = price,
-                    TotalPrice = price
-                };
+                    product = new Product
+                    {
+                        Count = count,
+                        Name = string.Join(" ", splitMessage.Take(splitMessage.Length - 2)),
+                        Price = price,
+                        TotalPrice = price
+                    };
 
-                return true;
+                    return true;
+                }
             }
         }
 
