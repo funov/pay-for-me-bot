@@ -1,10 +1,10 @@
 ﻿using System.Text;
 using Microsoft.Extensions.Logging;
-using SqliteProvider;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
+using SqliteProvider.SqliteProvider;
 using Telegram.Bot.Types.Enums;
 
 namespace PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
@@ -14,7 +14,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
     private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
 
     private readonly ILogger<EndStageMessageHandler> log;
-    private readonly IDbDriver dbDriver;
+    private readonly ISqliteProvider sqliteProvider;
     private readonly IKeyboardMarkup keyboardMarkup;
 
     private static string HelpMessage
@@ -28,11 +28,11 @@ public class EndStageMessageHandler : IEndStageMessageHandler
            "5) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
 
-    public EndStageMessageHandler(ILogger<EndStageMessageHandler> log, IDbDriver dbDriver,
+    public EndStageMessageHandler(ILogger<EndStageMessageHandler> log, ISqliteProvider sqliteProvider,
         IKeyboardMarkup keyboardMarkup)
     {
         this.log = log;
-        this.dbDriver = dbDriver;
+        this.sqliteProvider = sqliteProvider;
         this.keyboardMarkup = keyboardMarkup;
     }
 
@@ -46,7 +46,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         if (!IsUserSentRequisite(chatId))
         {
-            var teamId = dbDriver.GetTeamIdByUserChatId(message.Chat.Id);
+            var teamId = sqliteProvider.GetTeamIdByUserChatId(message.Chat.Id);
 
             if (IsRequisiteValid(message.Text!))
             {
@@ -57,16 +57,16 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
                 if (DoesAllTeamUsersHavePhoneNumber(teamId))
                 {
-                    var teamUsers2Buyers2Money = dbDriver.GetRequisitesAndDebts(teamId);
+                    var teamUsers2Buyers2Money = sqliteProvider.GetRequisitesAndDebts(teamId);
 
-                    var teamChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+                    var teamChatIds = sqliteProvider.GetUsersChatIdInTeam(teamId);
 
                     foreach (var teamChatId in teamChatIds)
                     {
                         await SendRequisitesAndDebts(client, teamChatId, cancellationToken,
                             teamUsers2Buyers2Money[teamChatId]);
 
-                        dbDriver.ChangeUserStage(chatId, teamId, "start");
+                        sqliteProvider.ChangeUserStage(chatId, teamId, "start");
 
                         await client.SendTextMessageAsync(
                             chatId: teamChatId,
@@ -75,7 +75,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
                             cancellationToken: cancellationToken);
                     }
 
-                    dbDriver.DeleteTeamInDb(teamId);
+                    sqliteProvider.DeleteTeamInDb(teamId);
                 }
                 else
                 {
@@ -125,7 +125,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         );
 
         if (message != "Ты никому не должен! 🤩🤩🤩" +
-            "\n\n"+
+            "\n\n" +
             "Был рад помочь, до встречи!🥰🥰")
         {
             await client.SendTextMessageAsync(
@@ -141,14 +141,14 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
         if (buyers2Money.Count == 0)
             return "Ты никому не должен! 🤩🤩🤩" +
-                   "\n\n"+
+                   "\n\n" +
                    "Был рад помочь, до встречи!🥰🥰";
-        
+
         foreach (var value in buyers2Money)
         {
-            var buyerUsername = dbDriver.GetUsernameByChatId(value.Key);
-            var typeRequisites = dbDriver.GetTypeRequisites(value.Key);
-            var phoneNumber = dbDriver.GetPhoneNumberByChatId(value.Key);
+            var buyerUsername = sqliteProvider.GetUsernameByChatId(value.Key);
+            var typeRequisites = sqliteProvider.GetTypeRequisites(value.Key);
+            var phoneNumber = sqliteProvider.GetPhoneNumberByChatId(value.Key);
 
             if (typeRequisites == "phoneNumber")
             {
@@ -157,7 +157,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 
             if (typeRequisites == "tinkoffLink")
             {
-                var tinkoffLink = dbDriver.GetTinkoffLinkByUserChatId(value.Key);
+                var tinkoffLink = sqliteProvider.GetTinkoffLinkByUserChatId(value.Key);
                 message
                     .Append(GetRequisitesAndDebtsStringFormat(buyerUsername, phoneNumber, value.Value, tinkoffLink!));
             }
@@ -166,7 +166,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         return "Ты должен заплатить:\n" + message;
     }
 
-    private bool IsUserSentRequisite(long chatId) => dbDriver.IsUserSentRequisite(chatId);
+    private bool IsUserSentRequisite(long chatId) => sqliteProvider.IsUserSentRequisite(chatId);
 
     private bool IsRequisiteValid(string text)
     {
@@ -203,11 +203,11 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         {
             if (IsTelephoneNumberValid(requisites[0]))
             {
-                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, requisites[0], requisites[1]);
+                sqliteProvider.AddPhoneNumberAndTinkoffLink(userChatId, teamId, requisites[0], requisites[1]);
             }
             else
             {
-                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, requisites[1], requisites[0]);
+                sqliteProvider.AddPhoneNumberAndTinkoffLink(userChatId, teamId, requisites[1], requisites[0]);
             }
         }
         else
@@ -215,17 +215,17 @@ public class EndStageMessageHandler : IEndStageMessageHandler
             var phoneAndLink = text.Split(" ");
             if (phoneAndLink.Length == 1)
             {
-                dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0]);
+                sqliteProvider.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0]);
             }
             else
             {
                 if (IsTelephoneNumberValid(phoneAndLink[0]))
                 {
-                    dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0], phoneAndLink[1]);
+                    sqliteProvider.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0], phoneAndLink[1]);
                 }
                 else
                 {
-                    dbDriver.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[1], phoneAndLink[0]);
+                    sqliteProvider.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[1], phoneAndLink[0]);
                 }
             }
         }
@@ -245,12 +245,12 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         return matches.Count == 1;
     }
 
-    private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.IsAllTeamHasPhoneNumber(teamId);
+    private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => sqliteProvider.IsAllTeamHasPhoneNumber(teamId);
 
     private static string GetRequisitesAndDebtsStringFormat(string buyerUserName, string phoneNumber,
         double money, string? tinkoffLink = null)
         => tinkoffLink == null
-            ? string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —", 
+            ? string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —",
                 $"\n<b>{Math.Round(money, 1)}руб.</b>\n")
             : string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> \n",
                 $"\n<code>{tinkoffLink}</code> \n",

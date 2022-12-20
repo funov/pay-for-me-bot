@@ -5,11 +5,11 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using SqliteProvider;
 using PayForMeBot.TelegramBotService.Exceptions;
 using PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler;
+using SqliteProvider.SqliteProvider;
 
 namespace PayForMeBot.TelegramBotService;
 
@@ -20,18 +20,18 @@ public class TelegramBotService : ITelegramBotService
     private readonly IStartStageMessageHandler startHandler;
     private readonly IMiddleStageMessageHandler middleHandler;
     private readonly IEndStageMessageHandler endHandler;
-    private readonly IDbDriver dbDriver;
+    private readonly ISqliteProvider sqliteProvider;
 
     public TelegramBotService(ILogger<TelegramBotService> log, IConfiguration config,
         IStartStageMessageHandler startHandler, IMiddleStageMessageHandler middleHandler,
-        IEndStageMessageHandler endHandler, IDbDriver dbDriver)
+        IEndStageMessageHandler endHandler, ISqliteProvider sqliteProvider)
     {
         this.log = log;
         this.config = config;
         this.startHandler = startHandler;
         this.middleHandler = middleHandler;
         this.endHandler = endHandler;
-        this.dbDriver = dbDriver;
+        this.sqliteProvider = sqliteProvider;
     }
 
     public async Task Run()
@@ -79,14 +79,14 @@ public class TelegramBotService : ITelegramBotService
             if (update.Message != null)
             {
                 chatId = update.Message!.Chat.Id;
-                var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-                currentStage = dbDriver.GetUserStage(chatId, teamId)!;
+                var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
+                currentStage = sqliteProvider.GetUserStage(chatId, teamId)!;
             }
             else if (update.CallbackQuery != null)
             {
                 chatId = update.CallbackQuery!.From.Id;
-                var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-                currentStage = dbDriver.GetUserStage(chatId, teamId)!;
+                var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
+                currentStage = sqliteProvider.GetUserStage(chatId, teamId)!;
             }
             else
             {

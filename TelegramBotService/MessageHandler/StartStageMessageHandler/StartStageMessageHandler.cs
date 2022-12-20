@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using SqliteProvider;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
+using SqliteProvider.SqliteProvider;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -14,7 +14,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
 
     private readonly ILogger<StartStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
-    private readonly IDbDriver dbDriver;
+    private readonly ISqliteProvider sqliteProvider;
 
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
@@ -28,11 +28,11 @@ public class StartStageMessageHandler : IStartStageMessageHandler
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
 
     public StartStageMessageHandler(ILogger<StartStageMessageHandler> log, IKeyboardMarkup keyboardMarkup,
-        IDbDriver dbDriver)
+        ISqliteProvider sqliteProvider)
     {
         this.log = log;
         this.keyboardMarkup = keyboardMarkup;
-        this.dbDriver = dbDriver;
+        this.sqliteProvider = sqliteProvider;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -70,7 +70,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                     log.LogInformation("@{username} created a team {guid} in chat {chatId}",
                         userName, userTeamId, chatId);
 
-                    dbDriver.AddUser(message.Chat.Username!, chatId, userTeamId);
+                    sqliteProvider.AddUser(message.Chat.Username!, chatId, userTeamId);
 
                     await client.SendTextMessageAsync(
                         chatId: chatId,
@@ -80,7 +80,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                         cancellationToken: cancellationToken
                     );
 
-                    dbDriver.ChangeUserStage(chatId, userTeamId, "middle");
+                    sqliteProvider.ChangeUserStage(chatId, userTeamId, "middle");
                 }
                 else
                 {
@@ -140,8 +140,8 @@ public class StartStageMessageHandler : IStartStageMessageHandler
             log.LogInformation("@{username} joined team {guid} in {chatId}",
                 userName, teamId, chatId);
 
-            dbDriver.AddUser(userName, chatId, teamId);
-            dbDriver.ChangeUserStage(chatId, teamId, "middle");
+            sqliteProvider.AddUser(userName, chatId, teamId);
+            sqliteProvider.ChangeUserStage(chatId, teamId, "middle");
 
             await client.SendTextMessageAsync(
                 chatId: chatId,
@@ -162,7 +162,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
                 cancellationToken: cancellationToken
             );
 
-            var pastProducts = dbDriver.GetProductsByTeamId(teamId);
+            var pastProducts = sqliteProvider.GetProductsByTeamId(teamId);
 
             foreach (var pastProduct in pastProducts)
             {
@@ -185,5 +185,5 @@ public class StartStageMessageHandler : IStartStageMessageHandler
         }
     }
 
-    private bool IsUserInTeam(long userChatId) => dbDriver.IsUserInDb(userChatId);
+    private bool IsUserInTeam(long userChatId) => sqliteProvider.IsUserInDb(userChatId);
 }

@@ -2,11 +2,10 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using PayForMeBot.Models;
-using SqliteProvider;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
-using ReceiptApiClient;
 using ReceiptApiClient.Exceptions;
 using ReceiptApiClient.ReceiptApiClient;
+using SqliteProvider.SqliteProvider;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -30,16 +29,16 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     private readonly ILogger<MiddleStageMessageHandler> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
-    private readonly IDbDriver dbDriver;
+    private readonly ISqliteProvider sqliteProvider;
     private readonly IMapper mapper;
 
     public MiddleStageMessageHandler(ILogger<MiddleStageMessageHandler> log, IReceiptApiClient receiptApiClient,
-        IKeyboardMarkup keyboardMarkup, IDbDriver dbDriver, IMapper mapper)
+        IKeyboardMarkup keyboardMarkup, ISqliteProvider sqliteProvider, IMapper mapper)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
         this.keyboardMarkup = keyboardMarkup;
-        this.dbDriver = dbDriver;
+        this.sqliteProvider = sqliteProvider;
         this.mapper = mapper;
     }
 
@@ -50,7 +49,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
             message.Text, chatId, userName);
-        var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+        var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
 
         switch (message.Text!)
         {
@@ -81,7 +80,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                     text: "Отправь мне свой номер телефона и ссылку на реквизиты в Тинькофф банк (если она есть).",
                     replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken);
-                dbDriver.ChangeUserStage(chatId, teamId, "end");
+                sqliteProvider.ChangeUserStage(chatId, teamId, "end");
                 return;
             case "Нет🫣":
                 await client.SendTextMessageAsync(
@@ -99,7 +98,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             log.LogInformation("@{userName} added product {productGuid} in chat {chatId}",
                 userName, productGuid, chatId);
 
-            var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+            var teamUserChatIds = sqliteProvider.GetUsersChatIdInTeam(teamId);
             
             var receiptId = Guid.NewGuid();
             var productId = AddProduct(dbProduct, receiptId, chatId, teamId);
@@ -173,8 +172,8 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             
             var products = receipt.Products.Select(x => mapper.Map<Product>(x)).ToList();
 
-            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
-            var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
+            var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
+            var teamUserChatIds = sqliteProvider.GetUsersChatIdInTeam(teamId);
             var receiptId = Guid.NewGuid();
             var productIds = AddProducts(products, receiptId, chatId, teamId);
 
@@ -245,7 +244,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
             var chatId = callback.From.Id;
             var userName = callback.From.Username;
-            var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
+            var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
 
             var id = Guid.NewGuid();
 
@@ -254,14 +253,14 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 log.LogInformation("User @{userName} decided to pay for the product {ProductId} in chat {chatId}",
                     userName, productId, chatId);
 
-                dbDriver.AddUserProductBinding(id, chatId, teamId, productId);
+                sqliteProvider.AddUserProductBinding(id, chatId, teamId, productId);
             }
             else
             {
                 log.LogInformation("User @{userName} refused to pay for the product {ProductId} in chat {chatId}",
                     userName, productId, chatId);
 
-                dbDriver.DeleteUserProductBinding(chatId, teamId, productId);
+                sqliteProvider.DeleteUserProductBinding(chatId, teamId, productId);
             }
 
             await client.EditMessageTextAsync(
@@ -275,7 +274,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
-    private List<Guid> AddProducts(List<Product> products, Guid receiptId, long chatId, Guid teamId)
+    private List<Guid> AddProducts(IReadOnlyCollection<Product> products, Guid receiptId, long chatId, Guid teamId)
     {
         var productsIds = new List<Guid>();
 
@@ -288,7 +287,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             .Select(product => mapper.Map<SqliteProvider.Models.Product>(product))
             .ToArray();
         
-        dbDriver.AddProducts(productsIds.ToArray(), mappedProducts, receiptId, chatId, teamId);
+        sqliteProvider.AddProducts(productsIds.ToArray(), mappedProducts, receiptId, chatId, teamId);
 
         return productsIds;
     }
@@ -296,7 +295,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     private Guid AddProduct(Product product, Guid receiptId, long chatId, Guid teamId)
     {
         var productId = Guid.NewGuid();
-        dbDriver.AddProduct(productId, mapper.Map<SqliteProvider.Models.Product>(product), receiptId, chatId, teamId);
+        sqliteProvider.AddProduct(productId, mapper.Map<SqliteProvider.Models.Product>(product), receiptId, chatId, teamId);
         return productId;
     }
 
@@ -320,7 +319,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     {
         foreach (var teamUserChatId in teamUserChatIds)
         {
-            var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
+            var teamUsername = sqliteProvider.GetUsernameByChatId(teamUserChatId);
             
             if (teamUsername != userName)
             {

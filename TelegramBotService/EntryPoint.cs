@@ -3,13 +3,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PayForMeBot.TelegramBotService;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
-using SqliteProvider;
 using PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
 using Serilog;
+using SqliteProvider.SqliteProvider;
 
 namespace PayForMeBot;
 
@@ -37,7 +37,7 @@ public static class Program
                 services.AddSingleton<IMiddleStageMessageHandler, MiddleStageMessageHandler>();
                 services.AddSingleton<IStartStageMessageHandler, StartStageMessageHandler>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
-                services.AddSingleton<IDbDriver, DbDriver>();
+                services.AddSingleton<ISqliteProvider, SqliteProvider.SqliteProvider.SqliteProvider>();
                 services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
                 services.AddAutoMapper(typeof(MiddleStageMessageHandler).Assembly);
                 services.AddHttpClient<ReceiptApiService>();
