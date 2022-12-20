@@ -17,20 +17,24 @@ public class TelegramBotService : ITelegramBotService
 {
     private readonly ILogger<TelegramBotService> log;
     private readonly IConfiguration config;
-    private readonly ITeamAdditionStageMessageHandler _teamAdditionHandler;
-    private readonly IProductsSelectionStageMessageHandler _productsSelectionHandler;
-    private readonly IPaymentStageMessageHandler _paymentHandler;
+    private readonly ITeamAdditionStageMessageHandler teamAdditionStageMessageHandler;
+    private readonly IProductsSelectionStageMessageHandler productsSelectionStageMessageHandler;
+    private readonly IPaymentStageMessageHandler paymentStageMessageHandler;
     private readonly ISqliteProvider sqliteProvider;
 
-    public TelegramBotService(ILogger<TelegramBotService> log, IConfiguration config,
-        ITeamAdditionStageMessageHandler teamAdditionHandler, IProductsSelectionStageMessageHandler productsSelectionHandler,
-        IPaymentStageMessageHandler paymentHandler, ISqliteProvider sqliteProvider)
+    public TelegramBotService(
+        ILogger<TelegramBotService> log, 
+        IConfiguration config,
+        ITeamAdditionStageMessageHandler teamAdditionStageMessageHandler,
+        IProductsSelectionStageMessageHandler productsSelectionStageMessageHandler,
+        IPaymentStageMessageHandler paymentStageMessageHandler, 
+        ISqliteProvider sqliteProvider)
     {
         this.log = log;
         this.config = config;
-        this._teamAdditionHandler = teamAdditionHandler;
-        this._productsSelectionHandler = productsSelectionHandler;
-        this._paymentHandler = paymentHandler;
+        this.teamAdditionStageMessageHandler = teamAdditionStageMessageHandler;
+        this.productsSelectionStageMessageHandler = productsSelectionStageMessageHandler;
+        this.paymentStageMessageHandler = paymentStageMessageHandler;
         this.sqliteProvider = sqliteProvider;
     }
 
@@ -104,13 +108,13 @@ public class TelegramBotService : ITelegramBotService
                 switch (currentStage)
                 {
                     case "start":
-                        await _teamAdditionHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                        await teamAdditionStageMessageHandler.HandleTextAsync(client, update.Message, cancellationToken);
                         break;
                     case "middle":
-                        await _productsSelectionHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                        await productsSelectionStageMessageHandler.HandleTextAsync(client, update.Message, cancellationToken);
                         break;
                     case "end":
-                        await _paymentHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                        await paymentStageMessageHandler.HandleTextAsync(client, update.Message, cancellationToken);
                         break;
                 }
 
@@ -118,7 +122,7 @@ public class TelegramBotService : ITelegramBotService
 
             case { Type: MessageType.Photo }:
                 if (currentStage == "middle")
-                    await _productsSelectionHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
+                    await productsSelectionStageMessageHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
                 break;
         }
 
@@ -126,11 +130,7 @@ public class TelegramBotService : ITelegramBotService
         {
             case { Type: UpdateType.CallbackQuery }:
                 if (update.CallbackQuery != null && currentStage == "middle")
-                {
-                    log.LogInformation("{userName}", currentStage);
-                    await _productsSelectionHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
-                }
-
+                    await productsSelectionStageMessageHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
                 break;
         }
     }
