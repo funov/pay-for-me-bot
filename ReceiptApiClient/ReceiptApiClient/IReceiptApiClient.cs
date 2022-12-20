@@ -1,6 +1,6 @@
 using ReceiptApiClient.Models;
 
-namespace ReceiptApiClient;
+namespace ReceiptApiClient.ReceiptApiClient;
 
 public interface IReceiptApiClient
 {

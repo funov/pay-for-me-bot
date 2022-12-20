@@ -5,7 +5,7 @@ using ReceiptApiClient.Exceptions;
 using ReceiptApiClient.JsonObjects;
 using ReceiptApiClient.Models;
 
-namespace ReceiptApiClient;
+namespace ReceiptApiClient.ReceiptApiClient;
 
 public class ReceiptApiClient : IReceiptApiClient
 {

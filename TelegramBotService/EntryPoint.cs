@@ -8,6 +8,7 @@ using PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler;
 using ReceiptApiClient;
+using ReceiptApiClient.ReceiptApiClient;
 using Serilog;
 
 namespace PayForMeBot;
@@ -30,14 +31,14 @@ public static class Program
         var host = Host.CreateDefaultBuilder()
             .ConfigureServices((context, services) =>
             {
-                services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient>();
+                services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient.ReceiptApiClient>();
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IEndStageMessageHandler, EndStageMessageHandler>();
                 services.AddSingleton<IMiddleStageMessageHandler, MiddleStageMessageHandler>();
                 services.AddSingleton<IStartStageMessageHandler, StartStageMessageHandler>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
                 services.AddSingleton<IDbDriver, DbDriver>();
-                services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient).Assembly);
+                services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
                 services.AddAutoMapper(typeof(MiddleStageMessageHandler).Assembly);
                 services.AddHttpClient<ReceiptApiService>();
             })

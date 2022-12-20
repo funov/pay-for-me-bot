@@ -6,6 +6,7 @@ using SqliteProvider;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using ReceiptApiClient;
 using ReceiptApiClient.Exceptions;
+using ReceiptApiClient.ReceiptApiClient;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
