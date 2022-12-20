@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace PayForMeBot.ReceiptApiClient.Models;
+namespace PayForMeBot.Models;
 
 public class Product
 {

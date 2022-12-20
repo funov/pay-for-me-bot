@@ -1,11 +1,11 @@
 using System.Text.Json;
 using AutoMapper;
 using Newtonsoft.Json.Linq;
-using PayForMeBot.ReceiptApiClient.Exceptions;
-using PayForMeBot.ReceiptApiClient.JsonObjects;
-using PayForMeBot.ReceiptApiClient.Models;
+using ReceiptApiClient.Exceptions;
+using ReceiptApiClient.JsonObjects;
+using ReceiptApiClient.Models;
 
-namespace PayForMeBot.ReceiptApiClient;
+namespace ReceiptApiClient;
 
 public class ReceiptApiClient : IReceiptApiClient
 {

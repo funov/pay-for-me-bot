@@ -1,9 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
-using PayForMeBot.ReceiptApiClient.Exceptions;
-using PayForMeBot.TelegramBotService.Exceptions;
+using ReceiptApiClient.Exceptions;
 
-namespace PayForMeBot.ReceiptApiClient;
+namespace ReceiptApiClient;
 
 public class ReceiptApiService
 {
@@ -20,7 +19,7 @@ public class ReceiptApiService
         httpClient.BaseAddress = new Uri(url);
 
         token = config.GetValue<string>("RECEIPT_API_TOKEN")
-                ?? throw new NullTokenException("Configuration error");
+                ?? throw new NullReceiptApiTokenException("Configuration error");
     }
 
     public async Task<JObject> GetReceiptApiResult(byte[] receiptImageBytes)

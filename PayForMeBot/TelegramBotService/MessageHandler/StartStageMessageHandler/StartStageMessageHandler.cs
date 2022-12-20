@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using PayForMeBot.DbDriver;
+using SqliteProvider;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -12,7 +12,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
 {
     private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
 
-    private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
+    private readonly ILogger<StartStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IDbDriver dbDriver;
 
@@ -27,7 +27,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
            "5) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
 
-    public StartStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IKeyboardMarkup keyboardMarkup,
+    public StartStageMessageHandler(ILogger<StartStageMessageHandler> log, IKeyboardMarkup keyboardMarkup,
         IDbDriver dbDriver)
     {
         this.log = log;

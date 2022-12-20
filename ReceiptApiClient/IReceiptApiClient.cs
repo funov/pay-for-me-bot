@@ -1,6 +1,6 @@
-using PayForMeBot.ReceiptApiClient.Models;
+using ReceiptApiClient.Models;
 
-namespace PayForMeBot.ReceiptApiClient;
+namespace ReceiptApiClient;
 
 public interface IReceiptApiClient
 {

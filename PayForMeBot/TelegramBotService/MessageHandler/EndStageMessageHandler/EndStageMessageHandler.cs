@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using Microsoft.Extensions.Logging;
-using PayForMeBot.DbDriver;
+using SqliteProvider;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
@@ -13,7 +13,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
 {
     private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
 
-    private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
+    private readonly ILogger<EndStageMessageHandler> log;
     private readonly IDbDriver dbDriver;
     private readonly IKeyboardMarkup keyboardMarkup;
 
@@ -28,7 +28,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
            "5) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
 
-    public EndStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IDbDriver dbDriver,
+    public EndStageMessageHandler(ILogger<EndStageMessageHandler> log, IDbDriver dbDriver,
         IKeyboardMarkup keyboardMarkup)
     {
         this.log = log;
@@ -245,7 +245,7 @@ public class EndStageMessageHandler : IEndStageMessageHandler
         return matches.Count == 1;
     }
 
-    private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.DoesAllTeamUsersHavePhoneNumber(teamId);
+    private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => dbDriver.IsAllTeamHasPhoneNumber(teamId);
 
     private static string GetRequisitesAndDebtsStringFormat(string buyerUserName, string phoneNumber,
         double money, string? tinkoffLink = null)

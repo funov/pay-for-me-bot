@@ -1,7 +1,7 @@
-using PayForMeBot.DbDriver.Models;
-using Product = PayForMeBot.ReceiptApiClient.Models.Product;
+using SqliteProvider.Models;
+using SqliteProvider.Tables;
 
-namespace PayForMeBot.DbDriver;
+namespace SqliteProvider;
 
 public interface IDbDriver
 {
@@ -23,7 +23,7 @@ public interface IDbDriver
     Dictionary<long, Dictionary<long, double>> GetRequisitesAndDebts(Guid teamId);
     string GetPhoneNumberByChatId(long chatId);
     string GetUsernameByChatId(long chatId);
-    bool DoesAllTeamUsersHavePhoneNumber(Guid teamId);
+    bool IsAllTeamHasPhoneNumber(Guid teamId);
     string GetTypeRequisites(long chatId);
     List<long> GetUsersChatIdInTeam(Guid teamId);
     void DeleteTeamInDb(Guid teamId);

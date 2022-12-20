@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using PayForMeBot.DbDriver.Exceptions;
-using PayForMeBot.DbDriver.Models;
+using SqliteProvider.Exceptions;
+using SqliteProvider.Tables;
 
 
-namespace PayForMeBot.DbDriver;
+namespace SqliteProvider;
 
 public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext
 {

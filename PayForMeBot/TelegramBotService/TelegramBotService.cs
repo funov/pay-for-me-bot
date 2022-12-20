@@ -5,7 +5,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using PayForMeBot.DbDriver;
+using SqliteProvider;
 using PayForMeBot.TelegramBotService.Exceptions;
 using PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
@@ -15,14 +15,14 @@ namespace PayForMeBot.TelegramBotService;
 
 public class TelegramBotService : ITelegramBotService
 {
-    private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
+    private readonly ILogger<TelegramBotService> log;
     private readonly IConfiguration config;
     private readonly IStartStageMessageHandler startHandler;
     private readonly IMiddleStageMessageHandler middleHandler;
     private readonly IEndStageMessageHandler endHandler;
     private readonly IDbDriver dbDriver;
 
-    public TelegramBotService(ILogger<ReceiptApiClient.ReceiptApiClient> log, IConfiguration config,
+    public TelegramBotService(ILogger<TelegramBotService> log, IConfiguration config,
         IStartStageMessageHandler startHandler, IMiddleStageMessageHandler middleHandler,
         IEndStageMessageHandler endHandler, IDbDriver dbDriver)
     {

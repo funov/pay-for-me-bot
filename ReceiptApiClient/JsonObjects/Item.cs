@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace PayForMeBot.ReceiptApiClient.JsonObjects;
+namespace ReceiptApiClient.JsonObjects;
 
 [JsonObject]
 public class Item

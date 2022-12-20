@@ -1,4 +1,4 @@
-namespace PayForMeBot.ReceiptApiClient.Models;
+namespace ReceiptApiClient.Models;
 
 public class Receipt
 {

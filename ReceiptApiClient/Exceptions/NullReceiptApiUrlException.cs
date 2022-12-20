@@ -1,4 +1,4 @@
-namespace PayForMeBot.ReceiptApiClient.Exceptions;
+namespace ReceiptApiClient.Exceptions;
 
 public class NullReceiptApiUrlException : Exception
 {

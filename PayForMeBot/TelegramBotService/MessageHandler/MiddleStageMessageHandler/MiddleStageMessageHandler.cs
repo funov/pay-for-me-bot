@@ -1,10 +1,11 @@
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using PayForMeBot.DbDriver;
-using PayForMeBot.ReceiptApiClient;
-using PayForMeBot.ReceiptApiClient.Exceptions;
-using PayForMeBot.ReceiptApiClient.Models;
+using PayForMeBot.Models;
+using SqliteProvider;
 using PayForMeBot.TelegramBotService.KeyboardMarkup;
+using ReceiptApiClient;
+using ReceiptApiClient.Exceptions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -25,18 +26,20 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
            "5) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
 
-    private readonly ILogger<ReceiptApiClient.ReceiptApiClient> log;
+    private readonly ILogger<MiddleStageMessageHandler> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IDbDriver dbDriver;
+    private readonly IMapper mapper;
 
-    public MiddleStageMessageHandler(ILogger<ReceiptApiClient.ReceiptApiClient> log, IReceiptApiClient receiptApiClient,
-        IKeyboardMarkup keyboardMarkup, IDbDriver dbDriver)
+    public MiddleStageMessageHandler(ILogger<MiddleStageMessageHandler> log, IReceiptApiClient receiptApiClient,
+        IKeyboardMarkup keyboardMarkup, IDbDriver dbDriver, IMapper mapper)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
         this.keyboardMarkup = keyboardMarkup;
         this.dbDriver = dbDriver;
+        this.mapper = mapper;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -61,7 +64,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                           "После этого бот подсчитает, кто кому сколько должен и скинет реквизиты для оплаты" +
                           "\n\n" +
                           "Вернуться к вводу/выбору продуктов будет невозможно!",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Да!", "Нет🫣"}),
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Да!", "Нет🫣" }),
                     cancellationToken: cancellationToken);
                 return;
             case "/help":
@@ -83,7 +86,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: "Нажми, как будете готовы делить счет!",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] {"Перейти к разделению счёта💴"}),
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Перейти к разделению счёта💴" }),
                     cancellationToken: cancellationToken);
                 return;
         }
@@ -96,9 +99,13 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
                 userName, productGuid, chatId);
 
             var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
-            var products = new List<Product> {dbProduct};
-            var productIds = GetProductIds(products, chatId, teamId);
             
+            var receiptId = Guid.NewGuid();
+            var productId = AddProduct(dbProduct, receiptId, chatId, teamId);
+            
+            var products = new List<Product> { dbProduct };
+            var productIds = new List<Guid> { productId };
+
             await SendAddedProductsToTeammatesAsync(teamUserChatIds, userName, client, products, productIds,
                 cancellationToken);
         }
@@ -141,7 +148,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
 
         if (fileInfo.FileSize != null)
         {
-            using var stream = new MemoryStream((int) fileInfo.FileSize.Value);
+            using var stream = new MemoryStream((int)fileInfo.FileSize.Value);
             await client.DownloadFileAsync(filePath, stream, cancellationToken);
             encryptedContent = stream.ToArray();
         }
@@ -159,16 +166,18 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             log.LogInformation("Send request to receipt api from @{userName} in {chatId}", userName, chatId);
 
             var receipt = await receiptApiClient.GetReceipt(encryptedContent);
-            var products = receipt.Products;
-
-            if (products == null)
+            
+            if (receipt.Products == null)
                 return;
             
+            var products = receipt.Products.Select(x => mapper.Map<Product>(x)).ToList();
+
             var teamId = dbDriver.GetTeamIdByUserChatId(chatId);
             var teamUserChatIds = dbDriver.GetUsersChatIdInTeam(teamId);
-            var productIds = GetProductIds(products, chatId, teamId);
-            
-            await SendAddedProductsToTeammatesAsync(teamUserChatIds, userName, client, products.ToList(), productIds,
+            var receiptId = Guid.NewGuid();
+            var productIds = AddProducts(products, receiptId, chatId, teamId);
+
+            await SendAddedProductsToTeammatesAsync(teamUserChatIds, userName, client, products, productIds,
                 cancellationToken);
 
             return;
@@ -265,18 +274,29 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
-    private List<Guid> GetProductIds(IEnumerable<Product> products, long chatId, Guid teamId)
+    private List<Guid> AddProducts(List<Product> products, Guid receiptId, long chatId, Guid teamId)
     {
         var productsIds = new List<Guid>();
-        foreach (var product in products)
+
+        for (var i = 0; i < products.Count; i++)
         {
-            var receiptGuid = Guid.NewGuid();
-            var productId = Guid.NewGuid();
-            dbDriver.AddProduct(productId, product, receiptGuid, chatId, teamId);
-            productsIds.Add(productId);
+            productsIds.Add(Guid.NewGuid());
         }
 
+        var mappedProducts = products
+            .Select(product => mapper.Map<SqliteProvider.Models.Product>(product))
+            .ToArray();
+        
+        dbDriver.AddProducts(productsIds.ToArray(), mappedProducts, receiptId, chatId, teamId);
+
         return productsIds;
+    }
+
+    private Guid AddProduct(Product product, Guid receiptId, long chatId, Guid teamId)
+    {
+        var productId = Guid.NewGuid();
+        dbDriver.AddProduct(productId, mapper.Map<SqliteProvider.Models.Product>(product), receiptId, chatId, teamId);
+        return productId;
     }
 
     private async Task SendProductOwnersUsernameAsync(ITelegramBotClient client, long chatId,
@@ -289,22 +309,25 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             cancellationToken: cancellationToken);
     }
 
-    private async Task SendAddedProductsToTeammatesAsync(List<long> teamUserChatIds, string? userName, ITelegramBotClient client,
-        List<Product> products, List<Guid> productIds, CancellationToken cancellationToken)
+    private async Task SendAddedProductsToTeammatesAsync(
+        List<long> teamUserChatIds, 
+        string? userName,
+        ITelegramBotClient client,
+        IReadOnlyList<Product> products, 
+        IReadOnlyList<Guid> productIds, 
+        CancellationToken cancellationToken)
     {
         foreach (var teamUserChatId in teamUserChatIds)
         {
             var teamUsername = dbDriver.GetUsernameByChatId(teamUserChatId);
+            
             if (teamUsername != userName)
             {
                 await SendProductOwnersUsernameAsync(client, teamUserChatId, cancellationToken, userName);
-                await SendProductsMessagesAsync(client, teamUserChatId, teamUsername,
-                    products, productIds, cancellationToken);
             }
-            else
-                await SendProductsMessagesAsync(client, teamUserChatId, teamUsername,
-                    products, productIds, cancellationToken);
+            
+            await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, 
+                products, productIds, cancellationToken);
         }
     }
-    
 }

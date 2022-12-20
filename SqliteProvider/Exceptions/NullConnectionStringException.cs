@@ -1,4 +1,4 @@
-namespace PayForMeBot.DbDriver.Exceptions;
+namespace SqliteProvider.Exceptions;
 
 public class NullConnectionStringException : Exception
 {
