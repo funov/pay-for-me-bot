@@ -1,4 +1,4 @@
-namespace PayForMeBot.TelegramBotService;
+namespace TelegramBotService.TelegramBotService;
 
 public interface ITelegramBotService
 {

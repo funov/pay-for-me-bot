@@ -10,8 +10,8 @@ public interface ISqliteProvider
     void ChangeUserStage(long userChatId, Guid teamId, string state);
     void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId);
     string? GetTinkoffLinkByUserChatId(long userChatId);
-    void AddProduct(Guid id, Product product, Guid receiptId, long buyerChatId, Guid teamId);
-    public void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, long buyerChatId, Guid teamId);
+    void AddProduct(Product product);
+    public void AddProducts(IEnumerable<Product> productModels);
     void AddUserProductBinding(Guid id, long userChatId, Guid teamId, Guid productId);
     IEnumerable<UserProductBinding> GetProductBindingsByUserChatId(long userChatId, Guid teamId);
     string? GetUserStage(long userChatId, Guid teamId);

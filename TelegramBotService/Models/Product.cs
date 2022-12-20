@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace PayForMeBot.Models;
+namespace TelegramBotService.Models;
 
 public class Product
 {
@@ -14,7 +14,8 @@ public class Product
 
     public static bool TryParse(string message, out Product product)
     {
-        var splitMessage = message.Split(new[] {"\r\n", "\r", "\n", " "}, StringSplitOptions.RemoveEmptyEntries);
+        var splitMessage = message.Split(new[] { "\r\n", "\r", "\n", " " }, StringSplitOptions.RemoveEmptyEntries);
+
         if (splitMessage.Length > 2)
         {
             if (double.TryParse(splitMessage[^1].Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture,

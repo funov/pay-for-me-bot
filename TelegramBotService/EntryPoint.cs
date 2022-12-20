@@ -1,17 +1,17 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using PayForMeBot.TelegramBotService;
-using PayForMeBot.TelegramBotService.KeyboardMarkup;
-using PayForMeBot.TelegramBotService.MessageHandler.EndStageMessageHandler;
-using PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
-using PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler;
+using TelegramBotService.KeyboardMarkup;
+using TelegramBotService.TelegramBotService;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
 using SqliteProvider.SqliteProvider;
 using Serilog;
+using TelegramBotService.TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
+using TelegramBotService.TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
+using TelegramBotService.TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
 
-namespace PayForMeBot;
+namespace TelegramBotService;
 
 public static class Program
 {
@@ -33,13 +33,13 @@ public static class Program
             {
                 services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient.ReceiptApiClient>();
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
-                services.AddSingleton<IEndStageMessageHandler, EndStageMessageHandler>();
-                services.AddSingleton<IMiddleStageMessageHandler, MiddleStageMessageHandler>();
-                services.AddSingleton<IStartStageMessageHandler, StartStageMessageHandler>();
-                services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
+                services.AddSingleton<IPaymentStageMessageHandler, PaymentStageMessageHandler>();
+                services.AddSingleton<IProductsSelectionStageMessageHandler, ProductsSelectionStageMessageHandler>();
+                services.AddSingleton<ITeamAdditionStageMessageHandler, TeamAdditionStageMessageHandler>();
+                services.AddSingleton<IKeyboardMarkup, KeyboardMarkup.KeyboardMarkup>();
                 services.AddSingleton<ISqliteProvider, SqliteProvider.SqliteProvider.SqliteProvider>();
                 services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
-                services.AddAutoMapper(typeof(MiddleStageMessageHandler).Assembly);
+                services.AddAutoMapper(typeof(ProductsSelectionStageMessageHandler).Assembly);
                 services.AddAutoMapper(typeof(SqliteProvider.SqliteProvider.SqliteProvider).Assembly);
                 services.AddHttpClient<ReceiptApiService>();
             })

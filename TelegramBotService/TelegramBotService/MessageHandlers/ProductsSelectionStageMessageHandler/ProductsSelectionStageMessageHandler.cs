@@ -1,8 +1,6 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using PayForMeBot.Models;
-using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using ReceiptApiClient.Exceptions;
 using ReceiptApiClient.ReceiptApiClient;
 using SqliteProvider.SqliteProvider;
@@ -10,10 +8,12 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using TelegramBotService.KeyboardMarkup;
+using TelegramBotService.Models;
 
-namespace PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
+namespace TelegramBotService.TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 
-public class MiddleStageMessageHandler : IMiddleStageMessageHandler
+public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessageHandler
 {
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
@@ -26,13 +26,13 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
            "5) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
 
-    private readonly ILogger<MiddleStageMessageHandler> log;
+    private readonly ILogger<ProductsSelectionStageMessageHandler> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly ISqliteProvider sqliteProvider;
     private readonly IMapper mapper;
 
-    public MiddleStageMessageHandler(ILogger<MiddleStageMessageHandler> log, IReceiptApiClient receiptApiClient,
+    public ProductsSelectionStageMessageHandler(ILogger<ProductsSelectionStageMessageHandler> log, IReceiptApiClient receiptApiClient,
         IKeyboardMarkup keyboardMarkup, ISqliteProvider sqliteProvider, IMapper mapper)
     {
         this.log = log;
@@ -278,20 +278,32 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
-    private List<Guid> AddProducts(IReadOnlyCollection<Product> products, Guid receiptId, long chatId, Guid teamId)
+    private List<Guid> AddProducts(IReadOnlyList<Product> products, Guid receiptId, long chatId, Guid teamId)
     {
         var productsIds = new List<Guid>();
+        var sqliteProviderProducts = new List<SqliteProvider.Models.Product>();
 
-        for (var i = 0; i < products.Count; i++)
+        foreach (var product in products)
         {
-            productsIds.Add(Guid.NewGuid());
+            var productId = Guid.NewGuid();
+
+            var sqliteProviderProduct = new SqliteProvider.Models.Product
+            {
+                Id = productId,
+                Name = product.Name,
+                Count = product.Count,
+                Price = product.Price,
+                TotalPrice = product.TotalPrice,
+                TeamId = teamId,
+                ReceiptId = receiptId,
+                BuyerChatId = chatId
+            };
+
+            productsIds.Add(productId);
+            sqliteProviderProducts.Add(sqliteProviderProduct);
         }
 
-        var mappedProducts = products
-            .Select(product => mapper.Map<SqliteProvider.Models.Product>(product))
-            .ToArray();
-
-        sqliteProvider.AddProducts(productsIds.ToArray(), mappedProducts, receiptId, chatId, teamId);
+        sqliteProvider.AddProducts(sqliteProviderProducts);
 
         return productsIds;
     }
@@ -299,8 +311,20 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     private Guid AddProduct(Product product, Guid receiptId, long chatId, Guid teamId)
     {
         var productId = Guid.NewGuid();
-        sqliteProvider.AddProduct(productId, mapper.Map<SqliteProvider.Models.Product>(product), receiptId, chatId,
-            teamId);
+
+        var sqliteProviderProduct = new SqliteProvider.Models.Product
+        {
+            Id = productId,
+            Name = product.Name,
+            Count = product.Count,
+            Price = product.Price,
+            TotalPrice = product.TotalPrice,
+            TeamId = teamId,
+            ReceiptId = receiptId,
+            BuyerChatId = chatId
+        };
+
+        sqliteProvider.AddProduct(sqliteProviderProduct);
         return productId;
     }
 

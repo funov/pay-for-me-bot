@@ -1,9 +1,9 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
+namespace TelegramBotService.TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 
-public interface IMiddleStageMessageHandler
+public interface IProductsSelectionStageMessageHandler
 {
     Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken);
     Task HandlePhotoAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken);

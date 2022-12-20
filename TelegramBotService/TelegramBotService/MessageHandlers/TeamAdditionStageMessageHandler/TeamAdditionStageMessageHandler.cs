@@ -1,18 +1,18 @@
 ﻿using Microsoft.Extensions.Logging;
-using PayForMeBot.TelegramBotService.KeyboardMarkup;
 using SqliteProvider.SqliteProvider;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using TelegramBotService.KeyboardMarkup;
 
-namespace PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler;
+namespace TelegramBotService.TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
 
-public class StartStageMessageHandler : IStartStageMessageHandler
+public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 {
     private static string[] teamSelectionLabels = {"Создать команду", "Присоединиться к команде"};
 
-    private readonly ILogger<StartStageMessageHandler> log;
+    private readonly ILogger<TeamAdditionStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly ISqliteProvider sqliteProvider;
 
@@ -27,7 +27,7 @@ public class StartStageMessageHandler : IStartStageMessageHandler
            "5) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
 
-    public StartStageMessageHandler(ILogger<StartStageMessageHandler> log, IKeyboardMarkup keyboardMarkup,
+    public TeamAdditionStageMessageHandler(ILogger<TeamAdditionStageMessageHandler> log, IKeyboardMarkup keyboardMarkup,
         ISqliteProvider sqliteProvider)
     {
         this.log = log;

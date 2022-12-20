@@ -109,29 +109,19 @@ public class SqliteProvider : ISqliteProvider
     public string? GetTinkoffLinkByUserChatId(long userChatId)
         => db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))?.TinkoffLink;
 
-    public void AddProduct(Guid id, Product product, Guid receiptId, long buyerChatId, Guid teamId)
+    public void AddProduct(Product product)
     {
-        var productTable = new ProductTable
-        {
-            Id = id,
-            Name = product.Name,
-            TotalPrice = product.TotalPrice,
-            Price = product.Price,
-            Count = product.Count,
-            TeamId = teamId,
-            ReceiptId = receiptId,
-            BuyerChatId = buyerChatId
-        };
+        var productTable = mapper.Map<ProductTable>(product);
 
         db.Products.Add(productTable);
         db.SaveChanges();
     }
 
-    public void AddProducts(Guid[] ids, Product[] productModels, Guid receiptId, long buyerChatId, Guid teamId)
+    public void AddProducts(IEnumerable<Product> productModels)
     {
-        for (var i = 0; i < ids.Length; i++)
+        foreach (var productModel in productModels)
         {
-            AddProduct(ids[i], productModels[i], receiptId, buyerChatId, teamId);
+            AddProduct(productModel);
         }
     }
 
