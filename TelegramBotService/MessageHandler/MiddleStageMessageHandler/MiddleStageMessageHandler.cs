@@ -98,11 +98,13 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             log.LogInformation("@{userName} added product {productGuid} in chat {chatId}",
                 userName, productGuid, chatId);
 
-            var teamUserChatIds = sqliteProvider.GetUsersChatIdInTeam(teamId);
-            
+            var teamUserChatIds = sqliteProvider
+                .GetUsersChatIdInTeam(teamId)
+                .ToList();
+
             var receiptId = Guid.NewGuid();
             var productId = AddProduct(dbProduct, receiptId, chatId, teamId);
-            
+
             var products = new List<Product> { dbProduct };
             var productIds = new List<Guid> { productId };
 
@@ -166,14 +168,16 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
             log.LogInformation("Send request to receipt api from @{userName} in {chatId}", userName, chatId);
 
             var receipt = await receiptApiClient.GetReceipt(encryptedContent);
-            
+
             if (receipt.Products == null)
                 return;
-            
+
             var products = receipt.Products.Select(x => mapper.Map<Product>(x)).ToList();
 
             var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
-            var teamUserChatIds = sqliteProvider.GetUsersChatIdInTeam(teamId);
+            var teamUserChatIds = sqliteProvider
+                .GetUsersChatIdInTeam(teamId)
+                .ToList();
             var receiptId = Guid.NewGuid();
             var productIds = AddProducts(products, receiptId, chatId, teamId);
 
@@ -286,7 +290,7 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
         var mappedProducts = products
             .Select(product => mapper.Map<SqliteProvider.Models.Product>(product))
             .ToArray();
-        
+
         sqliteProvider.AddProducts(productsIds.ToArray(), mappedProducts, receiptId, chatId, teamId);
 
         return productsIds;
@@ -295,7 +299,8 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     private Guid AddProduct(Product product, Guid receiptId, long chatId, Guid teamId)
     {
         var productId = Guid.NewGuid();
-        sqliteProvider.AddProduct(productId, mapper.Map<SqliteProvider.Models.Product>(product), receiptId, chatId, teamId);
+        sqliteProvider.AddProduct(productId, mapper.Map<SqliteProvider.Models.Product>(product), receiptId, chatId,
+            teamId);
         return productId;
     }
 
@@ -310,23 +315,23 @@ public class MiddleStageMessageHandler : IMiddleStageMessageHandler
     }
 
     private async Task SendAddedProductsToTeammatesAsync(
-        List<long> teamUserChatIds, 
+        List<long> teamUserChatIds,
         string? userName,
         ITelegramBotClient client,
-        IReadOnlyList<Product> products, 
-        IReadOnlyList<Guid> productIds, 
+        IReadOnlyList<Product> products,
+        IReadOnlyList<Guid> productIds,
         CancellationToken cancellationToken)
     {
         foreach (var teamUserChatId in teamUserChatIds)
         {
             var teamUsername = sqliteProvider.GetUsernameByChatId(teamUserChatId);
-            
+
             if (teamUsername != userName)
             {
                 await SendProductOwnersUsernameAsync(client, teamUserChatId, cancellationToken, userName);
             }
-            
-            await SendProductsMessagesAsync(client, teamUserChatId, teamUsername, 
+
+            await SendProductsMessagesAsync(client, teamUserChatId, teamUsername,
                 products, productIds, cancellationToken);
         }
     }

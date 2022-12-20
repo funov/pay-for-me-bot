@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using SqliteProvider.Models;
 using SqliteProvider.Tables;
@@ -6,10 +7,15 @@ namespace SqliteProvider.SqliteProvider;
 
 public class SqliteProvider : ISqliteProvider
 {
+    private readonly IMapper mapper;
     private readonly DbContext db;
     private static HashSet<string> states = new() { "start", "middle", "end" };
 
-    public SqliteProvider(IConfiguration config) => db = new DbContext(config.GetValue<string>("DbConnectionString"));
+    public SqliteProvider(IConfiguration config, IMapper mapper)
+    {
+        this.mapper = mapper;
+        db = new DbContext(config.GetValue<string>("DbConnectionString"));
+    }
 
     public void AddUser(string userTgId, long userChatId, Guid teamId)
     {
@@ -68,14 +74,25 @@ public class SqliteProvider : ISqliteProvider
             .FirstOrDefault(x => x.UserChatId == userChatId && x.TeamId == teamId)?
             .Stage;
 
-    public IEnumerable<UserProductTable> GetProductBindingsByUserChatId(long userChatId, Guid teamId)
-        => db.Bindings
+
+    public IEnumerable<UserProductBinding> GetProductBindingsByUserChatId(long userChatId, Guid teamId)
+    {
+        var userProductBindingTables = db.Bindings
             .Where(userProductTable
                 => userProductTable.UserChatId.Equals(userChatId) && userProductTable.TeamId.Equals(teamId));
 
-    public IEnumerable<ProductTable> GetProductsByTeamId(Guid teamId)
-        => db.Products
+        return userProductBindingTables
+            .Select(userProductBindingTable => mapper.Map<UserProductBinding>(userProductBindingTable));
+    }
+
+    public IEnumerable<Product> GetProductsByTeamId(Guid teamId)
+    {
+        var productTables = db.Products
             .Where(productTable => productTable.TeamId == teamId);
+
+        return productTables
+            .Select(productTable => mapper.Map<Product>(productTable));
+    }
 
     public void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId)
     {
@@ -120,7 +137,7 @@ public class SqliteProvider : ISqliteProvider
 
     public void AddUserProductBinding(Guid id, long userChatId, Guid teamId, Guid productId)
     {
-        var binding = new UserProductTable
+        var binding = new UserProductBindingTable
         {
             Id = id,
             UserChatId = userChatId,
@@ -205,11 +222,10 @@ public class SqliteProvider : ISqliteProvider
             : "phoneNumber";
     }
 
-    public List<long> GetUsersChatIdInTeam(Guid teamId)
+    public IEnumerable<long> GetUsersChatIdInTeam(Guid teamId)
         => db.Users
             .Where(userTable => userTable.TeamId.Equals(teamId))
-            .Select(userTable => userTable.UserChatId)
-            .ToList();
+            .Select(userTable => userTable.UserChatId);
 
     public void DeleteTeamInDb(Guid teamId)
     {

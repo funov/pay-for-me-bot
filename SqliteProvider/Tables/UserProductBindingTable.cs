@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SqliteProvider.Tables;
 
-public class UserProductTable
+public class UserProductBindingTable
 {
     [Key]
     public Guid Id { get; set; }

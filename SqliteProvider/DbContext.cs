@@ -11,7 +11,7 @@ public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext
 
     public DbSet<UserTable> Users => Set<UserTable>();
     public DbSet<ProductTable> Products => Set<ProductTable>();
-    public DbSet<UserProductTable> Bindings => Set<UserProductTable>();
+    public DbSet<UserProductBindingTable> Bindings => Set<UserProductBindingTable>();
 
     public DbContext(string? connectionSting)
     {

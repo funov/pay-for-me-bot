@@ -8,8 +8,8 @@ using PayForMeBot.TelegramBotService.MessageHandler.MiddleStageMessageHandler;
 using PayForMeBot.TelegramBotService.MessageHandler.StartStageMessageHandler;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
-using Serilog;
 using SqliteProvider.SqliteProvider;
+using Serilog;
 
 namespace PayForMeBot;
 
@@ -40,6 +40,7 @@ public static class Program
                 services.AddSingleton<ISqliteProvider, SqliteProvider.SqliteProvider.SqliteProvider>();
                 services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
                 services.AddAutoMapper(typeof(MiddleStageMessageHandler).Assembly);
+                services.AddAutoMapper(typeof(SqliteProvider.SqliteProvider.SqliteProvider).Assembly);
                 services.AddHttpClient<ReceiptApiService>();
             })
             .UseSerilog()
