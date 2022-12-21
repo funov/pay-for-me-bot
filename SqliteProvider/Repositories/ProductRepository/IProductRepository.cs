@@ -9,4 +9,5 @@ public interface IProductRepository
     IEnumerable<Product> GetProductsByTeamId(Guid teamId);
     void DeleteAllProductsByTeamId(Guid teamId);
     long GetBuyerChatId(Guid productId);
+    double GetTotalPriceByProductId(Guid productId);
 }

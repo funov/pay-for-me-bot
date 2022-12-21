@@ -5,8 +5,10 @@ using TelegramBotService.KeyboardMarkup;
 using TelegramBotService.TelegramBotService;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
-using SqliteProvider.SqliteProvider;
 using Serilog;
+using SqliteProvider.Repositories.ProductRepository;
+using SqliteProvider.Repositories.UserProductBindingRepository;
+using SqliteProvider.Repositories.UserRepository;
 using TelegramBotService.TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
 using TelegramBotService.TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 using TelegramBotService.TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
@@ -29,19 +31,25 @@ public static class Program
         Log.Logger.Information("Application Starting");
 
         var host = Host.CreateDefaultBuilder()
-            .ConfigureServices((context, services) =>
+            .ConfigureServices((_, services) =>
             {
                 services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient.ReceiptApiClient>();
+                services.AddHttpClient<ReceiptApiService>();
+
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
+                services.AddSingleton<IKeyboardMarkup, KeyboardMarkup.KeyboardMarkup>();
+
                 services.AddSingleton<IPaymentStageMessageHandler, PaymentStageMessageHandler>();
                 services.AddSingleton<IProductsSelectionStageMessageHandler, ProductsSelectionStageMessageHandler>();
                 services.AddSingleton<ITeamAdditionStageMessageHandler, TeamAdditionStageMessageHandler>();
-                services.AddSingleton<IKeyboardMarkup, KeyboardMarkup.KeyboardMarkup>();
-                services.AddSingleton<ISqliteProvider, SqliteProvider.SqliteProvider.SqliteProvider>();
+
+                services.AddSingleton<IProductRepository, ProductRepository>();
+                services.AddSingleton<IUserRepository, UserRepository>();
+                services.AddSingleton<IUserProductBindingRepository, UserProductBindingRepository>();
+
                 services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
                 services.AddAutoMapper(typeof(ProductsSelectionStageMessageHandler).Assembly);
-                services.AddAutoMapper(typeof(SqliteProvider.SqliteProvider.SqliteProvider).Assembly);
-                services.AddHttpClient<ReceiptApiService>();
+                services.AddAutoMapper(typeof(ProductRepository).Assembly);
             })
             .UseSerilog()
             .Build();

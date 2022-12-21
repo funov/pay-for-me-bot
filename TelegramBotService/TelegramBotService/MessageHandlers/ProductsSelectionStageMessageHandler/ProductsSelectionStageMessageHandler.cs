@@ -3,7 +3,9 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using ReceiptApiClient.Exceptions;
 using ReceiptApiClient.ReceiptApiClient;
-using SqliteProvider.SqliteProvider;
+using SqliteProvider.Repositories.ProductRepository;
+using SqliteProvider.Repositories.UserProductBindingRepository;
+using SqliteProvider.Repositories.UserRepository;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -29,17 +31,27 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     private readonly ILogger<ProductsSelectionStageMessageHandler> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
-    private readonly ISqliteProvider sqliteProvider;
     private readonly IMapper mapper;
+    private readonly IUserRepository userRepository;
+    private readonly IProductRepository productRepository;
+    private readonly IUserProductBindingRepository userProductBindingRepository;
 
-    public ProductsSelectionStageMessageHandler(ILogger<ProductsSelectionStageMessageHandler> log, IReceiptApiClient receiptApiClient,
-        IKeyboardMarkup keyboardMarkup, ISqliteProvider sqliteProvider, IMapper mapper)
+    public ProductsSelectionStageMessageHandler(
+        ILogger<ProductsSelectionStageMessageHandler> log,
+        IReceiptApiClient receiptApiClient,
+        IKeyboardMarkup keyboardMarkup,
+        IMapper mapper,
+        IUserRepository userRepository,
+        IProductRepository productRepository,
+        IUserProductBindingRepository userProductBindingRepository)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
         this.keyboardMarkup = keyboardMarkup;
-        this.sqliteProvider = sqliteProvider;
         this.mapper = mapper;
+        this.userRepository = userRepository;
+        this.productRepository = productRepository;
+        this.userProductBindingRepository = userProductBindingRepository;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -49,7 +61,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
             message.Text, chatId, userName);
-        var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
+        var teamId = userRepository.GetTeamIdByUserChatId(chatId);
 
         switch (message.Text!)
         {
@@ -80,7 +92,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                     text: "Отправь мне свой номер телефона и ссылку на реквизиты в Тинькофф банк (если она есть).",
                     replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken);
-                sqliteProvider.ChangeUserStage(chatId, teamId, "end");
+                userRepository.ChangeUserStage(chatId, teamId, "end");
                 return;
             case "Нет🫣":
                 await client.SendTextMessageAsync(
@@ -98,7 +110,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             log.LogInformation("@{userName} added product {productGuid} in chat {chatId}",
                 userName, productGuid, chatId);
 
-            var teamUserChatIds = sqliteProvider
+            var teamUserChatIds = userRepository
                 .GetUsersChatIdInTeam(teamId)
                 .ToList();
 
@@ -174,8 +186,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
             var products = receipt.Products.Select(x => mapper.Map<Product>(x)).ToList();
 
-            var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
-            var teamUserChatIds = sqliteProvider
+            var teamId = userRepository.GetTeamIdByUserChatId(chatId);
+            var teamUserChatIds = userRepository
                 .GetUsersChatIdInTeam(teamId)
                 .ToList();
             var receiptId = Guid.NewGuid();
@@ -248,7 +260,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
             var chatId = callback.From.Id;
             var userName = callback.From.Username;
-            var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
+            var teamId = userRepository.GetTeamIdByUserChatId(chatId);
 
             var id = Guid.NewGuid();
 
@@ -257,14 +269,14 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                 log.LogInformation("User @{userName} decided to pay for the product {ProductId} in chat {chatId}",
                     userName, productId, chatId);
 
-                sqliteProvider.AddUserProductBinding(id, chatId, teamId, productId);
+                userProductBindingRepository.AddUserProductBinding(id, chatId, teamId, productId);
             }
             else
             {
                 log.LogInformation("User @{userName} refused to pay for the product {ProductId} in chat {chatId}",
                     userName, productId, chatId);
 
-                sqliteProvider.DeleteUserProductBinding(chatId, teamId, productId);
+                userProductBindingRepository.DeleteUserProductBinding(chatId, teamId, productId);
             }
 
             await client.EditMessageTextAsync(
@@ -278,7 +290,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
-    private List<Guid> AddProducts(IReadOnlyList<Product> products, Guid receiptId, long chatId, Guid teamId)
+    private List<Guid> AddProducts(IEnumerable<Product> products, Guid receiptId, long chatId, Guid teamId)
     {
         var productsIds = new List<Guid>();
         var sqliteProviderProducts = new List<SqliteProvider.Models.Product>();
@@ -303,7 +315,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             sqliteProviderProducts.Add(sqliteProviderProduct);
         }
 
-        sqliteProvider.AddProducts(sqliteProviderProducts);
+        productRepository.AddProducts(sqliteProviderProducts);
 
         return productsIds;
     }
@@ -324,7 +336,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             BuyerChatId = chatId
         };
 
-        sqliteProvider.AddProduct(sqliteProviderProduct);
+        productRepository.AddProduct(sqliteProviderProduct);
         return productId;
     }
 
@@ -348,7 +360,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     {
         foreach (var teamUserChatId in teamUserChatIds)
         {
-            var teamUsername = sqliteProvider.GetUsernameByChatId(teamUserChatId);
+            var teamUsername = userRepository.GetUsernameByChatId(teamUserChatId);
 
             if (teamUsername != userName)
             {

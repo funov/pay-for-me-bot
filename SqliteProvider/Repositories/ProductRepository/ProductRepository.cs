@@ -45,15 +45,20 @@ public class ProductRepository : IProductRepository
     {
         var productTables = db.Products
             .Where(productTable => productTable.TeamId.Equals(teamId));
-        
+
         foreach (var productTable in productTables)
         {
             db.Products.Remove(productTable);
         }
-        
+
         db.SaveChanges();
     }
-    
+
     public long GetBuyerChatId(Guid productId)
         => db.Products.FirstOrDefault(productTable => productTable.Id.Equals(productId))!.BuyerChatId;
+
+    public double GetTotalPriceByProductId(Guid productId)
+        => db.Products
+            .FirstOrDefault(productTable => productTable.Id.Equals(productId))
+            !.TotalPrice;
 }

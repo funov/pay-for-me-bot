@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using SqliteProvider.SqliteProvider;
+using SqliteProvider.Repositories.UserRepository;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -20,22 +20,22 @@ public class TelegramBotService : ITelegramBotService
     private readonly ITeamAdditionStageMessageHandler teamAdditionStageMessageHandler;
     private readonly IProductsSelectionStageMessageHandler productsSelectionStageMessageHandler;
     private readonly IPaymentStageMessageHandler paymentStageMessageHandler;
-    private readonly ISqliteProvider sqliteProvider;
+    private readonly IUserRepository userRepository;
 
     public TelegramBotService(
-        ILogger<TelegramBotService> log, 
+        ILogger<TelegramBotService> log,
         IConfiguration config,
         ITeamAdditionStageMessageHandler teamAdditionStageMessageHandler,
         IProductsSelectionStageMessageHandler productsSelectionStageMessageHandler,
-        IPaymentStageMessageHandler paymentStageMessageHandler, 
-        ISqliteProvider sqliteProvider)
+        IPaymentStageMessageHandler paymentStageMessageHandler,
+        IUserRepository userRepository)
     {
         this.log = log;
         this.config = config;
         this.teamAdditionStageMessageHandler = teamAdditionStageMessageHandler;
         this.productsSelectionStageMessageHandler = productsSelectionStageMessageHandler;
         this.paymentStageMessageHandler = paymentStageMessageHandler;
-        this.sqliteProvider = sqliteProvider;
+        this.userRepository = userRepository;
     }
 
     public async Task Run()
@@ -83,14 +83,14 @@ public class TelegramBotService : ITelegramBotService
             if (update.Message != null)
             {
                 chatId = update.Message!.Chat.Id;
-                var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
-                currentStage = sqliteProvider.GetUserStage(chatId, teamId)!;
+                var teamId = userRepository.GetTeamIdByUserChatId(chatId);
+                currentStage = userRepository.GetUserStage(chatId, teamId)!;
             }
             else if (update.CallbackQuery != null)
             {
                 chatId = update.CallbackQuery!.From.Id;
-                var teamId = sqliteProvider.GetTeamIdByUserChatId(chatId);
-                currentStage = sqliteProvider.GetUserStage(chatId, teamId)!;
+                var teamId = userRepository.GetTeamIdByUserChatId(chatId);
+                currentStage = userRepository.GetUserStage(chatId, teamId)!;
             }
             else
             {
@@ -108,10 +108,12 @@ public class TelegramBotService : ITelegramBotService
                 switch (currentStage)
                 {
                     case "start":
-                        await teamAdditionStageMessageHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                        await teamAdditionStageMessageHandler.HandleTextAsync(client, update.Message,
+                            cancellationToken);
                         break;
                     case "middle":
-                        await productsSelectionStageMessageHandler.HandleTextAsync(client, update.Message, cancellationToken);
+                        await productsSelectionStageMessageHandler.HandleTextAsync(client, update.Message,
+                            cancellationToken);
                         break;
                     case "end":
                         await paymentStageMessageHandler.HandleTextAsync(client, update.Message, cancellationToken);
@@ -122,7 +124,8 @@ public class TelegramBotService : ITelegramBotService
 
             case { Type: MessageType.Photo }:
                 if (currentStage == "middle")
-                    await productsSelectionStageMessageHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
+                    await productsSelectionStageMessageHandler.HandlePhotoAsync(client, update.Message,
+                        cancellationToken);
                 break;
         }
 
@@ -130,7 +133,8 @@ public class TelegramBotService : ITelegramBotService
         {
             case { Type: UpdateType.CallbackQuery }:
                 if (update.CallbackQuery != null && currentStage == "middle")
-                    await productsSelectionStageMessageHandler.HandleCallbackQuery(client, update.CallbackQuery, cancellationToken);
+                    await productsSelectionStageMessageHandler.HandleCallbackQuery(client, update.CallbackQuery,
+                        cancellationToken);
                 break;
         }
     }

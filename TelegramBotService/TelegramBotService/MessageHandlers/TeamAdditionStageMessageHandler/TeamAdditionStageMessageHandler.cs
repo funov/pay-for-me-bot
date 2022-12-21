@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
-using SqliteProvider.SqliteProvider;
+using SqliteProvider.Repositories.ProductRepository;
+using SqliteProvider.Repositories.UserProductBindingRepository;
+using SqliteProvider.Repositories.UserRepository;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -14,7 +16,9 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 
     private readonly ILogger<TeamAdditionStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
-    private readonly ISqliteProvider sqliteProvider;
+    private readonly IUserRepository userRepository;
+    private readonly IProductRepository productRepository;
+    private readonly IUserProductBindingRepository userProductBindingRepository;
 
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
@@ -27,12 +31,18 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
            "5) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
            "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
 
-    public TeamAdditionStageMessageHandler(ILogger<TeamAdditionStageMessageHandler> log, IKeyboardMarkup keyboardMarkup,
-        ISqliteProvider sqliteProvider)
+    public TeamAdditionStageMessageHandler(
+        ILogger<TeamAdditionStageMessageHandler> log, 
+        IKeyboardMarkup keyboardMarkup,
+        IUserRepository userRepository,
+        IProductRepository productRepository,
+        IUserProductBindingRepository userProductBindingRepository)
     {
         this.log = log;
         this.keyboardMarkup = keyboardMarkup;
-        this.sqliteProvider = sqliteProvider;
+        this.userRepository = userRepository;
+        this.productRepository = productRepository;
+        this.userProductBindingRepository = userProductBindingRepository;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -70,7 +80,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                     log.LogInformation("@{username} created a team {guid} in chat {chatId}",
                         userName, userTeamId, chatId);
 
-                    sqliteProvider.AddUser(message.Chat.Username!, chatId, userTeamId);
+                    userRepository.AddUser(message.Chat.Username!, chatId, userTeamId);
 
                     await client.SendTextMessageAsync(
                         chatId: chatId,
@@ -80,7 +90,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                         cancellationToken: cancellationToken
                     );
 
-                    sqliteProvider.ChangeUserStage(chatId, userTeamId, "middle");
+                    userRepository.ChangeUserStage(chatId, userTeamId, "middle");
                 }
                 else
                 {
@@ -140,8 +150,8 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             log.LogInformation("@{username} joined team {guid} in {chatId}",
                 userName, teamId, chatId);
 
-            sqliteProvider.AddUser(userName, chatId, teamId);
-            sqliteProvider.ChangeUserStage(chatId, teamId, "middle");
+            userRepository.AddUser(userName, chatId, teamId);
+            userRepository.ChangeUserStage(chatId, teamId, "middle");
 
             await client.SendTextMessageAsync(
                 chatId: chatId,
@@ -162,7 +172,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                 cancellationToken: cancellationToken
             );
 
-            var pastProducts = sqliteProvider.GetProductsByTeamId(teamId);
+            var pastProducts = productRepository.GetProductsByTeamId(teamId);
 
             foreach (var pastProduct in pastProducts)
             {
@@ -185,5 +195,5 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         }
     }
 
-    private bool IsUserInTeam(long userChatId) => sqliteProvider.IsUserInDb(userChatId);
+    private bool IsUserInTeam(long userChatId) => userRepository.IsUserInDb(userChatId);
 }
