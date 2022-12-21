@@ -35,19 +35,26 @@ public class UserRepository : IUserRepository
     public bool IsUserInDb(long userChatId)
         => db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId)) != null;
 
-    public void AddPhoneNumberAndTinkoffLink(long userChatId, Guid teamId, string? telephoneNumber,
-        string? tinkoffLink = null)
+    public void AddPhoneNumber(long userChatId, string telephoneNumber)
     {
-        var userTable = db.Users.FirstOrDefault(userTable
-            => userTable.UserChatId.Equals(userChatId) && userTable.TeamId.Equals(teamId));
-
-        if (userTable == null)
-            throw new InvalidOperationException($"User {userChatId} not exist");
-
-        userTable.TinkoffLink = tinkoffLink;
+        var userTable = GetUserTable(userChatId);
         userTable.PhoneNumber = telephoneNumber;
-
         db.SaveChanges();
+    }
+
+    public void AddTinkoffLink(long userChatId, string tinkoffLink)
+    {
+        var userTable = GetUserTable(userChatId);
+        userTable.TinkoffLink = tinkoffLink;
+        db.SaveChanges();
+    }
+
+    private UserTable GetUserTable(long chatId)
+    {
+        var userTable = db.Users
+            .FirstOrDefault(userTable => userTable.UserChatId == chatId);
+
+        return userTable ?? throw new InvalidOperationException($"User {chatId} not exist");
     }
 
     public void ChangeUserStage(long userChatId, Guid teamId, string state)
@@ -64,25 +71,6 @@ public class UserRepository : IUserRepository
         userTable.Stage = state;
         db.SaveChanges();
     }
-
-    // public string? GetUserStage(long userChatId, Guid teamId)
-    //     => db.Users
-    //         .FirstOrDefault(x => x.UserChatId == userChatId && x.TeamId == teamId)?
-    //         .Stage;
-
-    // public string? GetTinkoffLinkByUserChatId(long userChatId)
-    //     => db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))?.TinkoffLink;
-
-    // public Guid GetTeamIdByUserChatId(long userChatId)
-    //     => db.Users
-    //         .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))
-    //         !.TeamId;
-
-    // public string GetUsernameByChatId(long chatId)
-    //     => db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))!.Username!;
-
-    // public string GetPhoneNumberByChatId(long chatId)
-    //     => db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))!.PhoneNumber!;
 
     public User GetUser(long userChatId)
     {

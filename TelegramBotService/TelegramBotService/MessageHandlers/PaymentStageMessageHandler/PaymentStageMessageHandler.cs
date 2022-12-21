@@ -247,11 +247,13 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         {
             if (IsTelephoneNumberValid(requisites[0]))
             {
-                userRepository.AddPhoneNumberAndTinkoffLink(userChatId, teamId, requisites[0], requisites[1]);
+                userRepository.AddPhoneNumber(userChatId, requisites[0]);
+                userRepository.AddTinkoffLink(userChatId, requisites[1]);
             }
             else
             {
-                userRepository.AddPhoneNumberAndTinkoffLink(userChatId, teamId, requisites[1], requisites[0]);
+                userRepository.AddPhoneNumber(userChatId, requisites[1]);
+                userRepository.AddTinkoffLink(userChatId, requisites[0]);
             }
         }
         else
@@ -259,17 +261,19 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             var phoneAndLink = text.Split(" ");
             if (phoneAndLink.Length == 1)
             {
-                userRepository.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0]);
+                userRepository.AddPhoneNumber(userChatId, phoneAndLink[0]);
             }
             else
             {
                 if (IsTelephoneNumberValid(phoneAndLink[0]))
                 {
-                    userRepository.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[0], phoneAndLink[1]);
+                    userRepository.AddPhoneNumber(userChatId, phoneAndLink[0]);
+                    userRepository.AddTinkoffLink(userChatId, phoneAndLink[1]);
                 }
                 else
                 {
-                    userRepository.AddPhoneNumberAndTinkoffLink(userChatId, teamId, phoneAndLink[1], phoneAndLink[0]);
+                    userRepository.AddPhoneNumber(userChatId, phoneAndLink[1]);
+                    userRepository.AddTinkoffLink(userChatId, phoneAndLink[0]);
                 }
             }
         }

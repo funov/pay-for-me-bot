@@ -12,15 +12,8 @@ public interface IUserRepository
     bool IsAllTeamHasPhoneNumber(Guid teamId);
     void DeleteAllUsersByTeamId(Guid teamId);
     User GetUser(long userChatId);
-    
-    // Guid GetTeamIdByUserChatId(long userChatId);
-    // string? GetUserStage(long userChatId, Guid teamId);
-    // string? GetTinkoffLinkByUserChatId(long userChatId);
-    // string GetUsernameByChatId(long chatId);
-    // string GetPhoneNumberByChatId(long chatId);
-
-    void AddPhoneNumberAndTinkoffLink(long userChatId, Guid teamId, string? telephoneNumber,
-        string? tinkoffLink = null);
+    void AddPhoneNumber(long userChatId, string telephoneNumber);
+    void AddTinkoffLink(long userChatId, string tinkoffLink);
     
     string GetRequisitesType(long chatId);
 }
