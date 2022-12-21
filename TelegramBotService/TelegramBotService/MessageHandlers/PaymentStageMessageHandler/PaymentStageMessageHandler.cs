@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using SqliteProvider.Models;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
@@ -193,17 +194,19 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         foreach (var value in buyers2Money)
         {
             var buyer = userRepository.GetUser(value.Key);
-            var typeRequisites = userRepository.GetRequisitesType(value.Key);
+            var typeRequisites = userRepository.GetRequisiteType(value.Key);
 
-            if (typeRequisites == "phoneNumber")
+            switch (typeRequisites)
             {
-                message.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!, value.Value));
-            }
-
-            if (typeRequisites == "tinkoffLink")
-            {
-                message.Append(GetRequisitesAndDebtsStringFormat(
-                    buyer.Username!, buyer.PhoneNumber!, value.Value, buyer.TinkoffLink));
+                case RequisiteType.PhoneNumber:
+                    message.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!, value.Value));
+                    break;
+                case RequisiteType.PhoneNumberAndTinkoffLink:
+                    message.Append(GetRequisitesAndDebtsStringFormat(
+                        buyer.Username!, buyer.PhoneNumber!, value.Value, buyer.TinkoffLink));
+                    break;
+                default:
+                    throw new ArgumentException($"Unexpected requisite type {typeRequisites}");
             }
         }
 

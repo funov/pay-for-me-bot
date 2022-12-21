@@ -20,7 +20,7 @@ public class UserProductBindingRepository : IUserProductBindingRepository
     {
         var userProductBindingTables = db.Bindings
             .Where(userProductTable
-                => userProductTable.UserChatId.Equals(userChatId) && userProductTable.TeamId.Equals(teamId));
+                => userProductTable.UserChatId == userChatId && userProductTable.TeamId == teamId);
 
         return userProductBindingTables
             .Select(userProductBindingTable => mapper.Map<UserProductBinding>(userProductBindingTable));
@@ -30,9 +30,9 @@ public class UserProductBindingRepository : IUserProductBindingRepository
     {
         var binding = db.Bindings
             .FirstOrDefault(userProductTable
-                => userProductTable.UserChatId.Equals(userChatId)
-                   && userProductTable.TeamId.Equals(teamId)
-                   && userProductTable.ProductId.Equals(productId));
+                => userProductTable.UserChatId == userChatId
+                   && userProductTable.TeamId == teamId
+                   && userProductTable.ProductId == productId);
 
         db.Bindings.Remove(binding!);
         db.SaveChanges();
@@ -55,7 +55,7 @@ public class UserProductBindingRepository : IUserProductBindingRepository
     public void DeleteAllUserProductBindingsByTeamId(Guid teamId)
     {
         var bindingTables = db.Bindings
-            .Where(bindingTable => bindingTable.TeamId.Equals(teamId));
+            .Where(bindingTable => bindingTable.TeamId == teamId);
 
         foreach (var bindingTable in bindingTables)
             db.Bindings.Remove(bindingTable);
@@ -64,5 +64,5 @@ public class UserProductBindingRepository : IUserProductBindingRepository
     }
 
     public int GetUserProductBindingCount(Guid productId)
-        => db.Bindings.Count(binding => binding.ProductId.Equals(productId));
+        => db.Bindings.Count(binding => binding.ProductId == productId);
 }

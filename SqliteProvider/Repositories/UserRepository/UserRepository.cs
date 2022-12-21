@@ -33,7 +33,7 @@ public class UserRepository : IUserRepository
     }
 
     public bool IsUserInDb(long userChatId)
-        => db.Users.FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId)) != null;
+        => db.Users.FirstOrDefault(userTable => userTable.UserChatId == userChatId) != null;
 
     public void AddPhoneNumber(long userChatId, string telephoneNumber)
     {
@@ -63,7 +63,7 @@ public class UserRepository : IUserRepository
             throw new InvalidOperationException($"Incorrect state {state}");
 
         var userTable = db.Users
-            .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId) && userTable.TeamId.Equals(teamId));
+            .FirstOrDefault(userTable => userTable.UserChatId == userChatId && userTable.TeamId == teamId);
 
         if (userTable == null)
             throw new InvalidOperationException($"User {userChatId} not exist");
@@ -82,45 +82,44 @@ public class UserRepository : IUserRepository
 
     public bool IsUserSentRequisite(long userChatId)
         => db.Users
-            .FirstOrDefault(userTable => userTable.UserChatId.Equals(userChatId))
+            .FirstOrDefault(userTable => userTable.UserChatId == userChatId)
             !.PhoneNumber != null;
 
     public IEnumerable<long> GetUserChatIdsByTeamId(Guid teamId)
         => db.Users
-            .Where(userTable => userTable.TeamId.Equals(teamId))
+            .Where(userTable => userTable.TeamId == teamId)
             .Select(userTable => userTable.UserChatId);
 
-    public string GetRequisitesType(long chatId)
+    public RequisiteType GetRequisiteType(long chatId)
     {
         var tinkoffLink = db.Users
-            .FirstOrDefault(userTable => userTable.UserChatId.Equals(chatId))
+            .FirstOrDefault(userTable => userTable.UserChatId == chatId)
             ?.TinkoffLink;
 
         return tinkoffLink != null
-            ? "tinkoffLink"
-            : "phoneNumber";
+            ? RequisiteType.PhoneNumberAndTinkoffLink
+            : RequisiteType.PhoneNumber;
     }
 
     public bool IsAllTeamHasPhoneNumber(Guid teamId)
     {
         var hasPhoneNumberUsersCount = db.Users
-            .Where(userTable => userTable.TeamId.Equals(teamId))
+            .Where(userTable => userTable.TeamId == teamId)
             .Count(userTable => userTable.PhoneNumber != null);
 
         var teamUsersCount = db.Users
-            .Count(userTable => userTable.TeamId.Equals(teamId));
+            .Count(userTable => userTable.TeamId == teamId);
 
         return hasPhoneNumberUsersCount == teamUsersCount;
     }
 
     public void DeleteAllUsersByTeamId(Guid teamId)
     {
-        var userTables = db.Users.Where(userTable => userTable.TeamId.Equals(teamId)).ToList();
+        var userTables = db.Users
+            .Where(userTable => userTable.TeamId == teamId);
 
         foreach (var userTable in userTables)
-        {
             db.Users.Remove(userTable);
-        }
 
         db.SaveChanges();
     }

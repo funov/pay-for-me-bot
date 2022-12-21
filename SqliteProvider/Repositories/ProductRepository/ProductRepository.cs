@@ -42,7 +42,7 @@ public class ProductRepository : IProductRepository
     public void DeleteAllProductsByTeamId(Guid teamId)
     {
         var productTables = db.Products
-            .Where(productTable => productTable.TeamId.Equals(teamId));
+            .Where(productTable => productTable.TeamId == teamId);
 
         foreach (var productTable in productTables)
             db.Products.Remove(productTable);
@@ -51,10 +51,10 @@ public class ProductRepository : IProductRepository
     }
 
     public long GetBuyerChatId(Guid productId)
-        => db.Products.FirstOrDefault(productTable => productTable.Id.Equals(productId))!.BuyerChatId;
+        => db.Products.FirstOrDefault(productTable => productTable.Id == productId)!.BuyerChatId;
 
     public double GetProductTotalPriceByProductId(Guid productId)
         => db.Products
-            .FirstOrDefault(productTable => productTable.Id.Equals(productId))
+            .FirstOrDefault(productTable => productTable.Id == productId)
             !.TotalPrice;
 }

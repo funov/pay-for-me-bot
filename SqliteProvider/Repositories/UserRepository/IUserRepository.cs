@@ -14,6 +14,5 @@ public interface IUserRepository
     User GetUser(long userChatId);
     void AddPhoneNumber(long userChatId, string telephoneNumber);
     void AddTinkoffLink(long userChatId, string tinkoffLink);
-    
-    string GetRequisitesType(long chatId);
+    RequisiteType GetRequisiteType(long chatId);
 }
