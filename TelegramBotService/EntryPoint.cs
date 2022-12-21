@@ -51,6 +51,7 @@ public static class Program
                 services.AddAutoMapper(typeof(ProductsSelectionStageMessageHandler).Assembly);
                 services.AddAutoMapper(typeof(ProductRepository).Assembly);
                 services.AddAutoMapper(typeof(UserRepository).Assembly);
+                services.AddAutoMapper(typeof(UserProductBindingRepository).Assembly);
             })
             .UseSerilog()
             .Build();
