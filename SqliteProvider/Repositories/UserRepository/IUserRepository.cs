@@ -11,7 +11,7 @@ public interface IUserRepository
     IEnumerable<long> GetUserChatIdsByTeamId(Guid teamId);
     bool IsAllTeamHasPhoneNumber(Guid teamId);
     void DeleteAllUsersByTeamId(Guid teamId);
-    User GetUser(long userChatId);
+    User? GetUser(long userChatId);
     void AddPhoneNumber(long userChatId, string telephoneNumber);
     void AddTinkoffLink(long userChatId, string tinkoffLink);
     RequisiteType GetRequisiteType(long chatId);

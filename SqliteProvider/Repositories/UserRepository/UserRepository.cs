@@ -72,7 +72,7 @@ public class UserRepository : IUserRepository
         db.SaveChanges();
     }
 
-    public User GetUser(long userChatId)
+    public User? GetUser(long userChatId)
     {
         var userTable = db.Users
             .FirstOrDefault(table => table.UserChatId == userChatId);

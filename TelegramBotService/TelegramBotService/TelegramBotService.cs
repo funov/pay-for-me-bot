@@ -73,73 +73,52 @@ public class TelegramBotService : ITelegramBotService
 
     private async Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
     {
-        // TODO refactoring :(
-
-        string currentStage;
-        long chatId;
-
-        try
+        if (update.Type == UpdateType.CallbackQuery)
         {
-            if (update.Message != null)
-            {
-                chatId = update.Message!.Chat.Id;
+            var callback = update.CallbackQuery;
+            var chatId = callback!.From.Id;
+            var user = userRepository.GetUser(chatId);
+            var currentStage = GetCurrentStage(user);
 
-                var user = userRepository.GetUser(chatId);
-                currentStage = user.Stage!;
-            }
-            else if (update.CallbackQuery != null)
-            {
-                chatId = update.CallbackQuery!.From.Id;
-                
-                var user = userRepository.GetUser(chatId);
-                currentStage = user.Stage!;
-            }
-            else
-            {
-                currentStage = "start";
-            }
-        }
-        catch (NullReferenceException)
-        {
-            currentStage = "start";
+            if (update.CallbackQuery != null && currentStage == "middle")
+                await productsSelectionStageMessageHandler.HandleCallbackQuery(client, callback, cancellationToken);
         }
 
-        switch (update.Message)
+
+        if (update.Message is { Type: MessageType.Text })
         {
-            case { Type: MessageType.Text }:
-                switch (currentStage)
-                {
-                    case "start":
-                        await teamAdditionStageMessageHandler.HandleTextAsync(client, update.Message,
-                            cancellationToken);
-                        break;
-                    case "middle":
-                        await productsSelectionStageMessageHandler.HandleTextAsync(client, update.Message,
-                            cancellationToken);
-                        break;
-                    case "end":
-                        await paymentStageMessageHandler.HandleTextAsync(client, update.Message, cancellationToken);
-                        break;
-                }
+            var message = update.Message;
+            var chatId = message.Chat.Id;
+            var user = userRepository.GetUser(chatId);
+            var currentStage = GetCurrentStage(user);
 
-                break;
-
-            case { Type: MessageType.Photo }:
-                if (currentStage == "middle")
-                    await productsSelectionStageMessageHandler.HandlePhotoAsync(client, update.Message,
-                        cancellationToken);
-                break;
+            switch (currentStage)
+            {
+                case "start":
+                    await teamAdditionStageMessageHandler.HandleTextAsync(client, message, cancellationToken);
+                    break;
+                case "middle":
+                    await productsSelectionStageMessageHandler.HandleTextAsync(client, message, cancellationToken);
+                    break;
+                case "end":
+                    await paymentStageMessageHandler.HandleTextAsync(client, message, cancellationToken);
+                    break;
+            }
         }
 
-        switch (update)
+        if (update.Message is { Type: MessageType.Photo })
         {
-            case { Type: UpdateType.CallbackQuery }:
-                if (update.CallbackQuery != null && currentStage == "middle")
-                    await productsSelectionStageMessageHandler.HandleCallbackQuery(client, update.CallbackQuery,
-                        cancellationToken);
-                break;
+            var chatId = update.Message.Chat.Id;
+            var user = userRepository.GetUser(chatId);
+            var currentStage = GetCurrentStage(user);
+
+            if (currentStage == "middle")
+                await productsSelectionStageMessageHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
         }
     }
+
+    private static string GetCurrentStage(SqliteProvider.Models.User? user)
+        => user == null ? "start" : user.Stage!;
 
     private Task HandlePollingErrorAsync(ITelegramBotClient client, Exception exception,
         CancellationToken cancellationToken)
