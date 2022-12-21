@@ -83,14 +83,16 @@ public class TelegramBotService : ITelegramBotService
             if (update.Message != null)
             {
                 chatId = update.Message!.Chat.Id;
-                var teamId = userRepository.GetTeamIdByUserChatId(chatId);
-                currentStage = userRepository.GetUserStage(chatId, teamId)!;
+
+                var user = userRepository.GetUser(chatId);
+                currentStage = user.Stage!;
             }
             else if (update.CallbackQuery != null)
             {
                 chatId = update.CallbackQuery!.From.Id;
-                var teamId = userRepository.GetTeamIdByUserChatId(chatId);
-                currentStage = userRepository.GetUserStage(chatId, teamId)!;
+                
+                var user = userRepository.GetUser(chatId);
+                currentStage = user.Stage!;
             }
             else
             {

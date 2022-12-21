@@ -10,6 +10,9 @@ public class MappingProfile : Profile
     {
         CreateMap<ProductTable, Product>();
         CreateMap<Product, ProductTable>();
+
+        CreateMap<UserTable, User>();
+
         CreateMap<UserProductBindingTable, UserProductBinding>();
     }
 }

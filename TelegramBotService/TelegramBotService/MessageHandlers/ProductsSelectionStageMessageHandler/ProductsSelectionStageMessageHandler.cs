@@ -61,7 +61,9 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
             message.Text, chatId, userName);
-        var teamId = userRepository.GetTeamIdByUserChatId(chatId);
+
+        var user = userRepository.GetUser(chatId);
+        var teamId = user.TeamId;
 
         switch (message.Text!)
         {
@@ -111,7 +113,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                 userName, productGuid, chatId);
 
             var teamUserChatIds = userRepository
-                .GetUsersChatIdInTeam(teamId)
+                .GetUserChatIdsByTeamId(teamId)
                 .ToList();
 
             var receiptId = Guid.NewGuid();
@@ -186,9 +188,10 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
             var products = receipt.Products.Select(x => mapper.Map<Product>(x)).ToList();
 
-            var teamId = userRepository.GetTeamIdByUserChatId(chatId);
+            var user = userRepository.GetUser(chatId);
+            var teamId = user.TeamId;
             var teamUserChatIds = userRepository
-                .GetUsersChatIdInTeam(teamId)
+                .GetUserChatIdsByTeamId(teamId)
                 .ToList();
             var receiptId = Guid.NewGuid();
             var productIds = AddProducts(products, receiptId, chatId, teamId);
@@ -260,7 +263,9 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
             var chatId = callback.From.Id;
             var userName = callback.From.Username;
-            var teamId = userRepository.GetTeamIdByUserChatId(chatId);
+
+            var user = userRepository.GetUser(chatId);
+            var teamId = user.TeamId;
 
             var id = Guid.NewGuid();
 
@@ -360,9 +365,10 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     {
         foreach (var teamUserChatId in teamUserChatIds)
         {
-            var teamUsername = userRepository.GetUsernameByChatId(teamUserChatId);
+            var user = userRepository.GetUser(teamUserChatId);
+            var teamUsername = user.Username;
 
-            if (teamUsername != userName)
+            if (userName != null && teamUsername != userName)
             {
                 await SendProductOwnersUsernameAsync(client, teamUserChatId, cancellationToken, userName);
             }

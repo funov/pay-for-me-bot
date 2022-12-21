@@ -27,9 +27,7 @@ public class ProductRepository : IProductRepository
     public void AddProducts(IEnumerable<Product> productModels)
     {
         foreach (var productModel in productModels)
-        {
             AddProduct(productModel);
-        }
     }
 
     public IEnumerable<Product> GetProductsByTeamId(Guid teamId)
@@ -47,9 +45,7 @@ public class ProductRepository : IProductRepository
             .Where(productTable => productTable.TeamId.Equals(teamId));
 
         foreach (var productTable in productTables)
-        {
             db.Products.Remove(productTable);
-        }
 
         db.SaveChanges();
     }
@@ -57,7 +53,7 @@ public class ProductRepository : IProductRepository
     public long GetBuyerChatId(Guid productId)
         => db.Products.FirstOrDefault(productTable => productTable.Id.Equals(productId))!.BuyerChatId;
 
-    public double GetTotalPriceByProductId(Guid productId)
+    public double GetProductTotalPriceByProductId(Guid productId)
         => db.Products
             .FirstOrDefault(productTable => productTable.Id.Equals(productId))
             !.TotalPrice;

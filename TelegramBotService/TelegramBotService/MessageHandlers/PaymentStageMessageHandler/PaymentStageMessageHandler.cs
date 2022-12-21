@@ -56,7 +56,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
         if (!IsUserSentRequisite(chatId))
         {
-            var teamId = userRepository.GetTeamIdByUserChatId(message.Chat.Id);
+            var user = userRepository.GetUser(message.Chat.Id);
+            var teamId = user.TeamId;
 
             if (IsRequisiteValid(message.Text!))
             {
@@ -69,7 +70,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                 {
                     var teamUsers2Buyers2Money = GetRequisitesAndDebts(teamId);
 
-                    var teamChatIds = userRepository.GetUsersChatIdInTeam(teamId);
+                    var teamChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
 
                     foreach (var teamChatId in teamChatIds)
                     {
@@ -127,7 +128,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
     public Dictionary<long, Dictionary<long, double>> GetRequisitesAndDebts(Guid teamId)
     {
         var whomOwesToAmountOwedMoney = new Dictionary<long, Dictionary<long, double>>();
-        var teamUserChatIds = userRepository.GetUsersChatIdInTeam(teamId);
+        var teamUserChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
 
         foreach (var teamUserChatId in teamUserChatIds)
         {
@@ -140,7 +141,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             {
                 var buyerChatId = productRepository.GetBuyerChatId(productId);
 
-                var productPrice = productRepository.GetTotalPriceByProductId(productId);
+                var productPrice = productRepository.GetProductTotalPriceByProductId(productId);
 
                 var amount = productPrice / userProductBindingRepository.GetUserProductBindingCount(productId);
 
@@ -191,20 +192,18 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
         foreach (var value in buyers2Money)
         {
-            var buyerUsername = userRepository.GetUsernameByChatId(value.Key);
-            var typeRequisites = userRepository.GetTypeRequisites(value.Key);
-            var phoneNumber = userRepository.GetPhoneNumberByChatId(value.Key);
+            var buyer = userRepository.GetUser(value.Key);
+            var typeRequisites = userRepository.GetRequisitesType(value.Key);
 
             if (typeRequisites == "phoneNumber")
             {
-                message.Append(GetRequisitesAndDebtsStringFormat(buyerUsername, phoneNumber, value.Value));
+                message.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!, value.Value));
             }
 
             if (typeRequisites == "tinkoffLink")
             {
-                var tinkoffLink = userRepository.GetTinkoffLinkByUserChatId(value.Key);
-                message
-                    .Append(GetRequisitesAndDebtsStringFormat(buyerUsername, phoneNumber, value.Value, tinkoffLink!));
+                message.Append(GetRequisitesAndDebtsStringFormat(
+                    buyer.Username!, buyer.PhoneNumber!, value.Value, buyer.TinkoffLink));
             }
         }
 

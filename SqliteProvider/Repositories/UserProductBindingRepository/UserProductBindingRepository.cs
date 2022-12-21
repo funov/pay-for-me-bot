@@ -47,6 +47,7 @@ public class UserProductBindingRepository : IUserProductBindingRepository
             ProductId = productId,
             TeamId = teamId
         };
+
         db.Bindings.Add(binding);
         db.SaveChanges();
     }
@@ -57,13 +58,11 @@ public class UserProductBindingRepository : IUserProductBindingRepository
             .Where(bindingTable => bindingTable.TeamId.Equals(teamId));
 
         foreach (var bindingTable in bindingTables)
-        {
             db.Bindings.Remove(bindingTable);
-        }
-        
+
         db.SaveChanges();
     }
-    
+
     public int GetUserProductBindingCount(Guid productId)
         => db.Bindings.Count(binding => binding.ProductId.Equals(productId));
 }

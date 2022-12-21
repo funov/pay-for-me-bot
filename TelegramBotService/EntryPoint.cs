@@ -50,6 +50,7 @@ public static class Program
                 services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
                 services.AddAutoMapper(typeof(ProductsSelectionStageMessageHandler).Assembly);
                 services.AddAutoMapper(typeof(ProductRepository).Assembly);
+                services.AddAutoMapper(typeof(UserRepository).Assembly);
             })
             .UseSerilog()
             .Build();
