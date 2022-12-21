@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using SqliteProvider.Repositories.ProductRepository;
-using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -18,7 +17,6 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IUserRepository userRepository;
     private readonly IProductRepository productRepository;
-    private readonly IUserProductBindingRepository userProductBindingRepository;
 
     private static string HelpMessage
         => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
@@ -35,14 +33,12 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         ILogger<TeamAdditionStageMessageHandler> log, 
         IKeyboardMarkup keyboardMarkup,
         IUserRepository userRepository,
-        IProductRepository productRepository,
-        IUserProductBindingRepository userProductBindingRepository)
+        IProductRepository productRepository)
     {
         this.log = log;
         this.keyboardMarkup = keyboardMarkup;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
-        this.userProductBindingRepository = userProductBindingRepository;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)

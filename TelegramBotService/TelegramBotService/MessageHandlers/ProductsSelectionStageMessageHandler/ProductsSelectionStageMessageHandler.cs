@@ -366,7 +366,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         foreach (var teamUserChatId in teamUserChatIds)
         {
             var user = userRepository.GetUser(teamUserChatId);
-            var teamUsername = user.Username;
+            var teamUsername = user!.Username;
 
             if (userName != null && teamUsername != userName)
             {

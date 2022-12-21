@@ -126,7 +126,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         }
     }
 
-    public Dictionary<long, Dictionary<long, double>> GetRequisitesAndDebts(Guid teamId)
+    private Dictionary<long, Dictionary<long, double>> GetRequisitesAndDebts(Guid teamId)
     {
         var whomOwesToAmountOwedMoney = new Dictionary<long, Dictionary<long, double>>();
         var teamUserChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
@@ -182,28 +182,29 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         }
     }
 
-    private string MessageForUser(Dictionary<long, double> buyers2Money)
+    private string MessageForUser(Dictionary<long, double> buyersToMoney)
     {
         var message = new StringBuilder();
 
-        if (buyers2Money.Count == 0)
+        if (buyersToMoney.Count == 0)
             return "Ты никому не должен! 🤩🤩🤩" +
                    "\n\n" +
                    "Был рад помочь, до встречи!🥰🥰";
 
-        foreach (var value in buyers2Money)
+        foreach (var buyerChatId in buyersToMoney.Keys)
         {
-            var buyer = userRepository.GetUser(value.Key);
-            var typeRequisites = userRepository.GetRequisiteType(value.Key);
+            var buyer = userRepository.GetUser(buyerChatId)!;
+            var typeRequisites = userRepository.GetRequisiteType(buyerChatId);
 
             switch (typeRequisites)
             {
                 case RequisiteType.PhoneNumber:
-                    message.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!, value.Value));
+                    message.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!,
+                        buyersToMoney[buyerChatId]));
                     break;
                 case RequisiteType.PhoneNumberAndTinkoffLink:
-                    message.Append(GetRequisitesAndDebtsStringFormat(
-                        buyer.Username!, buyer.PhoneNumber!, value.Value, buyer.TinkoffLink));
+                    message.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!,
+                        buyersToMoney[buyerChatId], buyer.TinkoffLink));
                     break;
                 default:
                     throw new ArgumentException($"Unexpected requisite type {typeRequisites}");
@@ -215,31 +216,25 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
     private bool IsUserSentRequisite(long chatId) => userRepository.IsUserSentRequisite(chatId);
 
-    private bool IsRequisiteValid(string text)
+    private static bool IsRequisiteValid(string text)
     {
         text = text.Trim();
         var requisites = text.Split();
 
-        if (requisites.Length != 2)
-        {
-            if (requisites.Length == 1)
-            {
-                var phoneAndLink = requisites[0].Split(" ");
-                if (phoneAndLink.Length > 2)
-                    return false;
-                else
-                {
-                    if (phoneAndLink.Length == 1)
-                        return IsTelephoneNumberValid(phoneAndLink[0]);
-                    if (phoneAndLink.Length == 2)
-                        return IsTelephoneNumberValid(phoneAndLink[0]) && IsTinkoffLinkValid(phoneAndLink[1]);
-                }
-            }
-
+        if (requisites.Length == 2)
+            return IsTelephoneNumberValid(requisites[0]) && IsTinkoffLinkValid(requisites[1]);
+        if (requisites.Length != 1)
             return false;
-        }
 
-        return IsTelephoneNumberValid(requisites[0]) && IsTinkoffLinkValid(requisites[1]);
+        var phoneAndLink = requisites[0].Split(" ");
+
+        return phoneAndLink.Length switch
+        {
+            > 2 => false,
+            1 => IsTelephoneNumberValid(phoneAndLink[0]),
+            2 => IsTelephoneNumberValid(phoneAndLink[0]) && IsTinkoffLinkValid(phoneAndLink[1]),
+            _ => false
+        };
     }
 
     private void AddPhoneNumberAndTinkoffLink(string text, long userChatId, Guid teamId)
