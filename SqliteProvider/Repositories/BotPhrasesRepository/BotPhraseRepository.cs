@@ -11,5 +11,5 @@ public class BotPhraseRepository : IBotPhraseRepository
         => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
     public string? GetBotPhrase(BotPhrase phrase)
-        => db.BotPhrases.FirstOrDefault(botPhrasesTable => botPhrasesTable.Name == phrase)?.Phrase;
+        => db.BotPhrases.FirstOrDefault(botPhrasesTable => botPhrasesTable.Type == phrase)?.Phrase;
 }
