@@ -8,5 +8,6 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<ReceiptApiClient.Models.Product, Product>();
+        CreateMap<SqliteProvider.Models.Product, Product>();
     }
 }

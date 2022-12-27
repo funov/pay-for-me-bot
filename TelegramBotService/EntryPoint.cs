@@ -14,6 +14,7 @@ using TelegramBotService.BotPhrasesProvider;
 using TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
 using TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 using TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
+using TelegramBotService.ProductInlineButtonSender;
 
 namespace TelegramBotService;
 
@@ -40,6 +41,8 @@ public static class Program
 
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup.KeyboardMarkup>();
+                services
+                    .AddSingleton<IProductInlineButtonSender, ProductInlineButtonSender.ProductInlineButtonSender>();
                 services.AddSingleton<IBotPhrasesProvider, BotPhrasesProvider.BotPhrasesProvider>();
 
                 services.AddSingleton<IPaymentStageMessageHandler, PaymentStageMessageHandler>();

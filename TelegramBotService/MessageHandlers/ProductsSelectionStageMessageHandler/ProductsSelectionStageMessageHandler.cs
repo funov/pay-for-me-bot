@@ -14,6 +14,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBotService.BotPhrasesProvider;
 using TelegramBotService.KeyboardMarkup;
 using TelegramBotService.Models;
+using TelegramBotService.ProductInlineButtonSender;
 
 namespace TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 
@@ -27,6 +28,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     private readonly IProductRepository productRepository;
     private readonly IUserProductBindingRepository userProductBindingRepository;
     private readonly IBotPhrasesProvider botPhrasesProvider;
+    private readonly IProductInlineButtonSender productInlineButtonSender;
 
     private readonly string[] goToSplitPurchasesButtons;
     private readonly string[] transitionToEndButtons;
@@ -39,7 +41,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         IUserRepository userRepository,
         IProductRepository productRepository,
         IUserProductBindingRepository userProductBindingRepository,
-        IBotPhrasesProvider botPhrasesProvider)
+        IBotPhrasesProvider botPhrasesProvider,
+        IProductInlineButtonSender productInlineButtonSender)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
@@ -49,10 +52,11 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         this.productRepository = productRepository;
         this.userProductBindingRepository = userProductBindingRepository;
         this.botPhrasesProvider = botPhrasesProvider;
+        this.productInlineButtonSender = productInlineButtonSender;
 
-        goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases! };
         transitionToEndButtons = new[]
             { botPhrasesProvider.TransitionToEndYes!, botPhrasesProvider.TransitionToEndNo! };
+        goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases! };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -223,33 +227,6 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             cancellationToken: cancellationToken);
     }
 
-    private async Task SendProductsMessagesAsync(ITelegramBotClient client, long chatId, string? userName,
-        IReadOnlyList<Product> products, IReadOnlyList<Guid> productIds, CancellationToken cancellationToken)
-    {
-        for (var i = 0; i < products.Count; i++)
-        {
-            var text = $"{products[i].Name}";
-            var productId = productIds[i];
-
-            var inlineKeyboardMarkup = keyboardMarkup.GetInlineKeyboardMarkup(
-                productId,
-                $"{products[i].TotalPrice} р.",
-                $"{products[i].Count} шт.",
-                "🛒");
-
-            log.LogInformation("Send product {productId} inline button to @{userName} in chat {chatId}",
-                productId, userName, chatId);
-
-            await client.SendTextMessageAsync(
-                chatId,
-                text,
-                replyMarkup: inlineKeyboardMarkup,
-                disableNotification: true,
-                parseMode: ParseMode.Html,
-                cancellationToken: cancellationToken);
-        }
-    }
-
     public async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback,
         CancellationToken cancellationToken)
     {
@@ -373,14 +350,14 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         foreach (var teamUserChatId in teamUserChatIds)
         {
             var user = userRepository.GetUser(teamUserChatId);
-            var teamUsername = user!.Username;
+            var teamUserName = user!.Username!;
 
-            if (userName != null && teamUsername != userName)
+            if (userName != null && teamUserName != userName)
             {
                 await SendProductOwnersUsernameAsync(client, teamUserChatId, cancellationToken, userName);
             }
 
-            await SendProductsMessagesAsync(client, teamUserChatId, teamUsername,
+            await productInlineButtonSender.SendProductsInlineButtonsAsync(client, teamUserChatId, teamUserName,
                 products, productIds, cancellationToken);
         }
     }
