@@ -31,9 +31,6 @@ public class UserRepository : IUserRepository
         db.SaveChanges();
     }
 
-    public bool IsUserInDb(long userChatId)
-        => db.Users.FirstOrDefault(userTable => userTable.UserChatId == userChatId) != null;
-
     public void AddPhoneNumber(long userChatId, string telephoneNumber)
     {
         var userTable = GetUserTable(userChatId);

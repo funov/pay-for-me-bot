@@ -85,7 +85,6 @@ public class TelegramBotService : ITelegramBotService
                 await productsSelectionStageMessageHandler.HandleCallbackQuery(client, callback, cancellationToken);
         }
 
-
         if (update.Message is { Type: MessageType.Text })
         {
             var message = update.Message;

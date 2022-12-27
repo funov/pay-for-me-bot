@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using SqliteProvider.Exceptions;
 using SqliteProvider.Tables;
 
-
 namespace SqliteProvider;
 
 public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext

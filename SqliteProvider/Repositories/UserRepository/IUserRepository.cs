@@ -6,7 +6,6 @@ namespace SqliteProvider.Repositories.UserRepository;
 public interface IUserRepository
 {
     void AddUser(string userTgId, long userChatId, Guid teamId);
-    bool IsUserInDb(long userChatId);
     void ChangeUserStage(long userChatId, Guid teamId, UserStage stage);
     bool IsUserSentRequisite(long userChatId);
     IEnumerable<long> GetUserChatIdsByTeamId(Guid teamId);
