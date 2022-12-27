@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqliteProvider", "SqlitePro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramBotService", "TelegramBotService\TelegramBotService.csproj", "{495FE193-5C7F-48B8-A519-18638A3B2F2A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DebtsCalculator", "DebtsCalculator\DebtsCalculator.csproj", "{BF9A7469-C884-4650-8104-124C00E08463}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{495FE193-5C7F-48B8-A519-18638A3B2F2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{495FE193-5C7F-48B8-A519-18638A3B2F2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{495FE193-5C7F-48B8-A519-18638A3B2F2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF9A7469-C884-4650-8104-124C00E08463}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF9A7469-C884-4650-8104-124C00E08463}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF9A7469-C884-4650-8104-124C00E08463}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF9A7469-C884-4650-8104-124C00E08463}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

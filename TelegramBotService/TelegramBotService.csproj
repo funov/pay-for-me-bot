@@ -27,6 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\DebtsCalculator\DebtsCalculator.csproj" />
       <ProjectReference Include="..\ReceiptApiClient\ReceiptApiClient.csproj" />
       <ProjectReference Include="..\SqliteProvider\SqliteProvider.csproj" />
     </ItemGroup>

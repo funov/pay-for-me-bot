@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
+using DebtsCalculator;
 using Microsoft.Extensions.Logging;
 using SqliteProvider.Types;
 using SqliteProvider.Repositories.ProductRepository;
@@ -24,8 +25,10 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
     private readonly IProductRepository productRepository;
     private readonly IUserProductBindingRepository userProductBindingRepository;
     private readonly IBotPhrasesProvider botPhrasesProvider;
+    private readonly IDebtsCalculator debtsCalculator;
 
     private readonly string?[] teamSelectionLabels;
+    private readonly char[] requisitesSeparators;
 
     public PaymentStageMessageHandler(
         ILogger<PaymentStageMessageHandler> log,
@@ -33,7 +36,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         IUserRepository userRepository,
         IProductRepository productRepository,
         IUserProductBindingRepository userProductBindingRepository,
-        IBotPhrasesProvider botPhrasesProvider)
+        IBotPhrasesProvider botPhrasesProvider,
+        IDebtsCalculator debtsCalculator)
     {
         this.log = log;
         this.keyboardMarkup = keyboardMarkup;
@@ -41,8 +45,10 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         this.productRepository = productRepository;
         this.userProductBindingRepository = userProductBindingRepository;
         this.botPhrasesProvider = botPhrasesProvider;
+        this.debtsCalculator = debtsCalculator;
 
         teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton };
+        requisitesSeparators = new[] { '\n', ' ' };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -53,66 +59,9 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
             message.Text, chatId, userName);
 
-        if (!IsUserSentRequisite(chatId))
+        if (!userRepository.IsUserSentRequisite(chatId))
         {
-            var user = userRepository.GetUser(message.Chat.Id);
-            var teamId = user!.TeamId;
-
-            if (IsRequisiteValid(message.Text!))
-            {
-                log.LogInformation("Requisite is valid '{messageText}' in chat {chatId} from @{userName}",
-                    message.Text, chatId, userName);
-
-                AddPhoneNumberAndTinkoffLink(message.Text!, chatId, teamId);
-
-                if (DoesAllTeamUsersHavePhoneNumber(teamId))
-                {
-                    var teamUsers2Buyers2Money = GetRequisitesAndDebts(teamId);
-
-                    var teamChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
-
-                    foreach (var teamChatId in teamChatIds)
-                    {
-                        await SendRequisitesAndDebts(client, teamChatId, cancellationToken,
-                            teamUsers2Buyers2Money[teamChatId]);
-
-                        userRepository.ChangeUserStage(chatId, teamId, UserStage.TeamAddition);
-
-                        await client.SendTextMessageAsync(
-                            chatId: teamChatId,
-                            text: botPhrasesProvider.CreateOrJoinTeam!,
-                            parseMode: ParseMode.Html,
-                            replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels!),
-                            cancellationToken: cancellationToken);
-                    }
-
-                    // TODO
-                    // constraints (foreign key) 
-                    // транзакции BeginTransaction, по очереди все дропает
-                    userRepository.DeleteAllUsersByTeamId(teamId);
-                    productRepository.DeleteAllProductsByTeamId(teamId);
-                    userProductBindingRepository.DeleteAllUserProductBindingsByTeamId(teamId);
-                }
-                else
-                {
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: botPhrasesProvider.WaitingOtherUsersRequisites!,
-                        parseMode: ParseMode.Html,
-                        cancellationToken: cancellationToken);
-                }
-            }
-            else
-            {
-                log.LogInformation("Requisite isn't valid '{messageText}' in chat {chatId} from @{userName}",
-                    message.Text, chatId, userName);
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: botPhrasesProvider.RequisitesSendingError!,
-                    parseMode: ParseMode.Html,
-                    cancellationToken: cancellationToken);
-            }
+            await HandleAddRequisitesAsync(client, chatId, userName, message.Text!, cancellationToken);
         }
 
         if (message.Text! == "/help")
@@ -125,43 +74,109 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         }
     }
 
-    private Dictionary<long, Dictionary<long, double>> GetRequisitesAndDebts(Guid teamId)
+    private async Task HandleAddRequisitesAsync(
+        ITelegramBotClient client,
+        long chatId,
+        string userName,
+        string messageText,
+        CancellationToken cancellationToken)
     {
-        var whomOwesToAmountOwedMoney = new Dictionary<long, Dictionary<long, double>>();
-        var teamUserChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
+        var user = userRepository.GetUser(chatId);
+        var teamId = user!.TeamId;
 
-        foreach (var teamUserChatId in teamUserChatIds)
+        if (IsRequisiteValid(messageText))
         {
-            var productIds = userProductBindingRepository.GetProductBindingsByUserChatId(teamUserChatId, teamId)
-                .Select(userProductTable => userProductTable.ProductId).ToList();
+            log.LogInformation("Requisite is valid '{messageText}' in chat {chatId} from @{userName}",
+                messageText, chatId, userName);
 
-            whomOwesToAmountOwedMoney[teamUserChatId] = new Dictionary<long, double>();
+            AddPhoneNumberAndTinkoffLink(messageText, chatId);
 
-            foreach (var productId in productIds)
+            if (userRepository.IsAllTeamHasPhoneNumber(teamId))
             {
-                var buyerChatId = productRepository.GetBuyerChatId(productId);
-
-                var productPrice = productRepository.GetProductTotalPriceByProductId(productId);
-
-                var amount = productPrice / userProductBindingRepository.GetUserProductBindingCount(productId);
-
-                if (buyerChatId == teamUserChatId)
-                    continue;
-
-                if (!whomOwesToAmountOwedMoney[teamUserChatId].ContainsKey(buyerChatId))
-                    whomOwesToAmountOwedMoney[teamUserChatId][buyerChatId] = amount;
-                else
-                    whomOwesToAmountOwedMoney[teamUserChatId][buyerChatId] += amount;
+                await FinishTeamAsync(client, chatId, teamId, cancellationToken);
+                return;
             }
+
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.WaitingOtherUsersRequisites!,
+                parseMode: ParseMode.Html,
+                cancellationToken: cancellationToken);
+            return;
         }
 
-        return whomOwesToAmountOwedMoney;
+        log.LogInformation("Requisite isn't valid '{messageText}' in chat {chatId} from @{userName}",
+            messageText, chatId, userName);
+
+        await client.SendTextMessageAsync(
+            chatId: chatId,
+            text: botPhrasesProvider.RequisitesSendingError!,
+            parseMode: ParseMode.Html,
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task FinishTeamAsync(
+        ITelegramBotClient client,
+        long chatId,
+        Guid teamId,
+        CancellationToken cancellationToken)
+    {
+        var userIdToBuyerIdToDebt = debtsCalculator.GetUserIdToBuyerIdToDebt(teamId);
+        var teamChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
+
+        foreach (var teamChatId in teamChatIds)
+        {
+            await SendRequisitesAndDebts(client, teamChatId, userIdToBuyerIdToDebt[teamChatId], cancellationToken);
+
+            userRepository.ChangeUserStage(chatId, teamId, UserStage.TeamAddition);
+
+            await client.SendTextMessageAsync(
+                chatId: teamChatId,
+                text: botPhrasesProvider.CreateOrJoinTeam!,
+                parseMode: ParseMode.Html,
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels!),
+                cancellationToken: cancellationToken);
+        }
+
+        // TODO
+        // constraints (foreign key) 
+        // транзакции BeginTransaction, по очереди все дропает
+        userRepository.DeleteAllUsersByTeamId(teamId);
+        productRepository.DeleteAllProductsByTeamId(teamId);
+        userProductBindingRepository.DeleteAllUserProductBindingsByTeamId(teamId);
+    }
+
+    private void AddPhoneNumberAndTinkoffLink(string messageText, long chatId)
+    {
+        messageText = messageText.Trim();
+        var requisites = messageText.Split(requisitesSeparators, StringSplitOptions.RemoveEmptyEntries);
+
+        switch (requisites.Length)
+        {
+            case 1:
+                userRepository.AddPhoneNumber(chatId, requisites[0]);
+                break;
+            case 2:
+            {
+                if (IsTelephoneNumberValid(requisites[0]))
+                    userRepository.AddPhoneNumber(chatId, requisites[0]);
+                else if (IsTelephoneNumberValid(requisites[1]))
+                    userRepository.AddPhoneNumber(chatId, requisites[1]);
+
+                if (IsTinkoffLinkValid(requisites[0]))
+                    userRepository.AddTinkoffLink(chatId, requisites[0]);
+                else if (IsTinkoffLinkValid(requisites[1]))
+                    userRepository.AddTinkoffLink(chatId, requisites[1]);
+
+                break;
+            }
+        }
     }
 
     private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId,
-        CancellationToken cancellationToken, Dictionary<long, double> buyers2Money)
+        Dictionary<long, double> buyersToMoney, CancellationToken cancellationToken)
     {
-        var message = MessageForUser(buyers2Money);
+        var message = GetDebtMessageText(buyersToMoney);
 
         await client.SendTextMessageAsync(
             chatId: chatId,
@@ -180,7 +195,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         }
     }
 
-    private string MessageForUser(Dictionary<long, double> buyersToMoney)
+    private string GetDebtMessageText(Dictionary<long, double> buyersToMoney)
     {
         var debtMessage = new StringBuilder();
 
@@ -195,11 +210,11 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             switch (typeRequisites)
             {
                 case RequisiteType.PhoneNumber:
-                    debtMessage.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!,
+                    debtMessage.Append(GetRequisitesAndDebtsMessageText(buyer.Username!, buyer.PhoneNumber!,
                         buyersToMoney[buyerChatId]));
                     break;
                 case RequisiteType.PhoneNumberAndTinkoffLink:
-                    debtMessage.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!,
+                    debtMessage.Append(GetRequisitesAndDebtsMessageText(buyer.Username!, buyer.PhoneNumber!,
                         buyersToMoney[buyerChatId], buyer.TinkoffLink));
                     break;
                 default:
@@ -207,10 +222,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             }
         }
 
-        return $"Ты должен заплатить:\n\n{debtMessage}";
+        return $"Тебе нужно заплатить:\n\n{debtMessage}";
     }
-
-    private bool IsUserSentRequisite(long chatId) => userRepository.IsUserSentRequisite(chatId);
 
     private static bool IsRequisiteValid(string text)
     {
@@ -233,46 +246,6 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         };
     }
 
-    private void AddPhoneNumberAndTinkoffLink(string text, long userChatId, Guid teamId)
-    {
-        text = text.Trim();
-        var requisites = text.Split("\n");
-        if (requisites.Length == 2)
-        {
-            if (IsTelephoneNumberValid(requisites[0]))
-            {
-                userRepository.AddPhoneNumber(userChatId, requisites[0]);
-                userRepository.AddTinkoffLink(userChatId, requisites[1]);
-            }
-            else
-            {
-                userRepository.AddPhoneNumber(userChatId, requisites[1]);
-                userRepository.AddTinkoffLink(userChatId, requisites[0]);
-            }
-        }
-        else
-        {
-            var phoneAndLink = text.Split(" ");
-            if (phoneAndLink.Length == 1)
-            {
-                userRepository.AddPhoneNumber(userChatId, phoneAndLink[0]);
-            }
-            else
-            {
-                if (IsTelephoneNumberValid(phoneAndLink[0]))
-                {
-                    userRepository.AddPhoneNumber(userChatId, phoneAndLink[0]);
-                    userRepository.AddTinkoffLink(userChatId, phoneAndLink[1]);
-                }
-                else
-                {
-                    userRepository.AddPhoneNumber(userChatId, phoneAndLink[1]);
-                    userRepository.AddTinkoffLink(userChatId, phoneAndLink[0]);
-                }
-            }
-        }
-    }
-
     private static bool IsTelephoneNumberValid(string telephoneNumber)
     {
         var regex = new Regex(telephoneNumberRegexPattern);
@@ -287,9 +260,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         return matches.Count == 1;
     }
 
-    private bool DoesAllTeamUsersHavePhoneNumber(Guid teamId) => userRepository.IsAllTeamHasPhoneNumber(teamId);
-
-    private static string GetRequisitesAndDebtsStringFormat(string buyerUserName, string phoneNumber,
+    private static string GetRequisitesAndDebtsMessageText(string buyerUserName, string phoneNumber,
         double money, string? tinkoffLink = null)
         => tinkoffLink == null
             ? string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —",

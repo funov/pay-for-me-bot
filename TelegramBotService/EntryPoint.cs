@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using DebtsCalculator;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TelegramBotService.KeyboardMarkup;
@@ -38,6 +39,8 @@ public static class Program
             {
                 services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient.ReceiptApiClient>();
                 services.AddHttpClient<ReceiptApiService>();
+
+                services.AddSingleton<IDebtsCalculator, DebtsCalculator.DebtsCalculator>();
 
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup.KeyboardMarkup>();
