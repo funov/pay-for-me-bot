@@ -62,10 +62,10 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
     {
         var chatId = message.Chat.Id;
-        var userName = message.Chat.Username!;
+        var username = message.Chat.Username!;
 
         log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
-            message.Text, chatId, userName);
+            message.Text, chatId, username);
 
         var user = userRepository.GetUser(chatId);
         var teamId = user!.TeamId;
@@ -116,36 +116,46 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
         if (Product.TryParse(message.Text!, out var dbProduct))
         {
-            var productGuid = Guid.NewGuid();
-
-            log.LogInformation("@{userName} added product {productGuid} in chat {chatId}",
-                userName, productGuid, chatId);
-
-            var teamUserChatIds = userRepository
-                .GetUserChatIdsByTeamId(teamId)
-                .ToList();
-
-            var receiptId = Guid.NewGuid();
-            var productId = AddProduct(dbProduct, receiptId, chatId, teamId);
-
-            var products = new List<Product> { dbProduct };
-            var productIds = new List<Guid> { productId };
-
-            await SendAddedProductsToTeammatesAsync(teamUserChatIds, userName, client, products, productIds,
-                cancellationToken);
+            await HandleTextProductAsync(client, chatId, username, teamId, dbProduct, cancellationToken);
+            return;
         }
-        else
-        {
-            log.LogInformation("Can't parse text from @{userName} {text} to product in chat {chatId}",
-                userName, message.Text, chatId);
 
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: botPhrasesProvider.ExampleTextProductInput!,
-                parseMode: ParseMode.Html,
-                cancellationToken: cancellationToken
-            );
-        }
+        log.LogInformation("Can't parse text from @{userName} {text} to product in chat {chatId}",
+            username, message.Text, chatId);
+
+        await client.SendTextMessageAsync(
+            chatId: chatId,
+            text: botPhrasesProvider.ExampleTextProductInput!,
+            parseMode: ParseMode.Html,
+            cancellationToken: cancellationToken
+        );
+    }
+
+    private async Task HandleTextProductAsync(
+        ITelegramBotClient client,
+        long chatId,
+        string username,
+        Guid teamId,
+        Product dbProduct,
+        CancellationToken cancellationToken)
+    {
+        var productGuid = Guid.NewGuid();
+
+        log.LogInformation("@{userName} added product {productGuid} in chat {chatId}",
+            username, productGuid, chatId);
+
+        var teamUserChatIds = userRepository
+            .GetUserChatIdsByTeamId(teamId)
+            .ToList();
+
+        var receiptId = Guid.NewGuid();
+        var productId = AddProduct(dbProduct, receiptId, chatId, teamId);
+
+        var products = new List<Product> { dbProduct };
+        var productIds = new List<Guid> { productId };
+
+        await SendAddedProductsToTeammatesAsync(teamUserChatIds, username, client, products, productIds,
+            cancellationToken);
     }
 
     public async Task HandlePhotoAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -196,7 +206,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             var products = receipt.Products.Select(x => mapper.Map<Product>(x)).ToList();
 
             var user = userRepository.GetUser(chatId);
-            var teamId = user.TeamId;
+            var teamId = user!.TeamId;
             var teamUserChatIds = userRepository
                 .GetUserChatIdsByTeamId(teamId)
                 .ToList();
@@ -247,7 +257,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             var userName = callback.From.Username;
 
             var user = userRepository.GetUser(chatId);
-            var teamId = user.TeamId;
+            var teamId = user!.TeamId;
 
             var id = Guid.NewGuid();
 
@@ -273,9 +283,10 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                 parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup,
                 cancellationToken: cancellationToken);
+            return;
         }
-        else
-            await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
+
+        await client.AnswerCallbackQueryAsync(callback.Id, cancellationToken: cancellationToken);
     }
 
     private List<Guid> AddProducts(IEnumerable<Product> products, Guid receiptId, long chatId, Guid teamId)
@@ -328,20 +339,9 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         return productId;
     }
 
-    private async Task SendProductOwnersUsernameAsync(ITelegramBotClient client, long chatId,
-        CancellationToken cancellationToken, string buyerUserName)
-    {
-        var text = $"@{buyerUserName} добавил продукты!";
-        await client.SendTextMessageAsync(
-            chatId: chatId,
-            text: text,
-            parseMode: ParseMode.Html,
-            cancellationToken: cancellationToken);
-    }
-
     private async Task SendAddedProductsToTeammatesAsync(
         List<long> teamUserChatIds,
-        string? userName,
+        string? buyerName,
         ITelegramBotClient client,
         IReadOnlyList<Product> products,
         IReadOnlyList<Guid> productIds,
@@ -352,9 +352,13 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             var user = userRepository.GetUser(teamUserChatId);
             var teamUserName = user!.Username!;
 
-            if (userName != null && teamUserName != userName)
+            if (buyerName != null && teamUserName != buyerName)
             {
-                await SendProductOwnersUsernameAsync(client, teamUserChatId, cancellationToken, userName);
+                await client.SendTextMessageAsync(
+                    chatId: teamUserChatId,
+                    text: $"@{buyerName} добавил продукты!",
+                    parseMode: ParseMode.Html,
+                    cancellationToken: cancellationToken);
             }
 
             await productInlineButtonSender.SendProductsInlineButtonsAsync(client, teamUserChatId, teamUserName,
