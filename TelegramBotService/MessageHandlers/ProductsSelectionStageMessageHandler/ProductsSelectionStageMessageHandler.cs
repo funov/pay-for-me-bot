@@ -12,9 +12,9 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBotService.BotPhrasesProvider;
-using TelegramBotService.KeyboardMarkup;
+using TelegramBotService.ButtonUtils.KeyboardMarkup;
+using TelegramBotService.ButtonUtils.ProductInlineButtonSender;
 using TelegramBotService.Models;
-using TelegramBotService.ProductInlineButtonSender;
 
 namespace TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 

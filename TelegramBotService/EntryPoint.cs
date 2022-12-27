@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using TelegramBotService.KeyboardMarkup;
 using TelegramBotService.TelegramBotService;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
@@ -12,10 +11,11 @@ using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
 using TelegramBotService.BotPhrasesProvider;
+using TelegramBotService.ButtonUtils.KeyboardMarkup;
+using TelegramBotService.ButtonUtils.ProductInlineButtonSender;
 using TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
 using TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 using TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
-using TelegramBotService.ProductInlineButtonSender;
 
 namespace TelegramBotService;
 
@@ -43,9 +43,9 @@ public static class Program
                 services.AddSingleton<IDebtsCalculator, DebtsCalculator.DebtsCalculator>();
 
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
-                services.AddSingleton<IKeyboardMarkup, KeyboardMarkup.KeyboardMarkup>();
+                services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
                 services
-                    .AddSingleton<IProductInlineButtonSender, ProductInlineButtonSender.ProductInlineButtonSender>();
+                    .AddSingleton<IProductInlineButtonSender, ProductInlineButtonSender>();
                 services.AddSingleton<IBotPhrasesProvider, BotPhrasesProvider.BotPhrasesProvider>();
 
                 services.AddSingleton<IPaymentStageMessageHandler, PaymentStageMessageHandler>();

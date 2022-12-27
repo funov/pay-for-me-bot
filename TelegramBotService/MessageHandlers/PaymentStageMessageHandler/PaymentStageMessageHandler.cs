@@ -10,7 +10,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using TelegramBotService.BotPhrasesProvider;
-using TelegramBotService.KeyboardMarkup;
+using TelegramBotService.ButtonUtils.KeyboardMarkup;
 
 namespace TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
 

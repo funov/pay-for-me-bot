@@ -1,8 +1,8 @@
 using Telegram.Bot;
-using TelegramBotService.KeyboardMarkup;
+using TelegramBotService.ButtonUtils.KeyboardMarkup;
 using TelegramBotService.Models;
 
-namespace TelegramBotService.ProductInlineButtonSender;
+namespace TelegramBotService.ButtonUtils.ProductInlineButtonSender;
 
 public interface IProductInlineButtonSender
 {

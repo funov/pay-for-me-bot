@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
-using TelegramBotService.KeyboardMarkup;
+using TelegramBotService.ButtonUtils.KeyboardMarkup;
 using TelegramBotService.Models;
 
-namespace TelegramBotService.ProductInlineButtonSender;
+namespace TelegramBotService.ButtonUtils.ProductInlineButtonSender;
 
 public class ProductInlineButtonSender : IProductInlineButtonSender
 {
