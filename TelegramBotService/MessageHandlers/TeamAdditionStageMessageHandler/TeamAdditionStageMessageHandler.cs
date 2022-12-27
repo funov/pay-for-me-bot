@@ -69,6 +69,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.StartAddingProducts!,
+                parseMode: ParseMode.Html,
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
                 cancellationToken: cancellationToken
             );
@@ -80,6 +81,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.SendMeTeamId!,
+                parseMode: ParseMode.Html,
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken
             );
@@ -91,6 +93,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: botPhrasesProvider.CreateOrJoinTeam!,
+                    parseMode: ParseMode.Html,
                     replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                     cancellationToken: cancellationToken);
                 break;
@@ -114,6 +117,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.StartAddingProducts!,
+                parseMode: ParseMode.Html,
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
                 cancellationToken: cancellationToken
             );
@@ -135,11 +139,10 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                     chatId,
                     pastProduct.Name!,
                     replyMarkup: inlineKeyboardMarkup,
+                    parseMode: ParseMode.Html,
                     disableNotification: true,
                     cancellationToken: cancellationToken);
             }
         }
     }
-
-    private bool IsUserInTeam(long userChatId) => userRepository.IsUserInDb(userChatId);
 }

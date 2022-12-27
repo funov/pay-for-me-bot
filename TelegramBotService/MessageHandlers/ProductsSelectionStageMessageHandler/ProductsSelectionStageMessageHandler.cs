@@ -51,7 +51,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         this.botPhrasesProvider = botPhrasesProvider;
 
         goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases! };
-        transitionToEndButtons = new[] 
+        transitionToEndButtons = new[]
             { botPhrasesProvider.TransitionToEndYes!, botPhrasesProvider.TransitionToEndNo! };
     }
 
@@ -71,6 +71,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.TransitionToEnd!,
+                parseMode: ParseMode.Html,
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(transitionToEndButtons),
                 cancellationToken: cancellationToken);
             return;
@@ -81,6 +82,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.SendMeRequisites!,
+                parseMode: ParseMode.Html,
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
             userRepository.ChangeUserStage(chatId, teamId, UserStage.Payment);
@@ -92,6 +94,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.PushIfReadyToSplitPurchase!,
+                parseMode: ParseMode.Html,
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
                 cancellationToken: cancellationToken);
             return;
@@ -216,6 +219,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         await client.SendTextMessageAsync(
             chatId: chatId,
             text: problemText,
+            parseMode: ParseMode.Html,
             cancellationToken: cancellationToken);
     }
 
@@ -241,6 +245,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                 text,
                 replyMarkup: inlineKeyboardMarkup,
                 disableNotification: true,
+                parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken);
         }
     }
@@ -288,6 +293,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                 callback.Message.Chat.Id,
                 callback.Message.MessageId,
                 callback.Message.Text ?? throw new InvalidOperationException(),
+                parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup,
                 cancellationToken: cancellationToken);
         }
@@ -352,6 +358,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         await client.SendTextMessageAsync(
             chatId: chatId,
             text: text,
+            parseMode: ParseMode.Html,
             cancellationToken: cancellationToken);
     }
 

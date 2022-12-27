@@ -46,5 +46,6 @@ public class BotPhrasesProvider : IBotPhrasesProvider
         ReceiptApiError = botPhraseRepository.GetBotPhrase(BotPhraseType.ReceiptApiError);
         StartAddingProducts = botPhraseRepository.GetBotPhrase(BotPhraseType.StartAddingProducts);
         SendMeTeamId = botPhraseRepository.GetBotPhrase(BotPhraseType.SendMeTeamId);
+        CreateOrJoinTeam = botPhraseRepository.GetBotPhrase(BotPhraseType.CreateOrJoinTeam);
     }
 }

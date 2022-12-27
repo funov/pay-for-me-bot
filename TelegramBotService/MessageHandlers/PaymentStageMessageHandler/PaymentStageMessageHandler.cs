@@ -81,6 +81,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                         await client.SendTextMessageAsync(
                             chatId: teamChatId,
                             text: botPhrasesProvider.CreateOrJoinTeam!,
+                            parseMode: ParseMode.Html,
                             replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels!),
                             cancellationToken: cancellationToken);
                     }
@@ -97,6 +98,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                     await client.SendTextMessageAsync(
                         chatId: chatId,
                         text: botPhrasesProvider.WaitingOtherUsersRequisites!,
+                        parseMode: ParseMode.Html,
                         cancellationToken: cancellationToken);
                 }
             }
@@ -118,6 +120,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.Help!,
+                parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken);
         }
     }
@@ -172,6 +175,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.Goodbye!,
+                parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken);
         }
     }
