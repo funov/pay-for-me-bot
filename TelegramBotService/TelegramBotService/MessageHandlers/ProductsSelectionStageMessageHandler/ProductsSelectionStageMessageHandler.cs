@@ -6,6 +6,7 @@ using ReceiptApiClient.ReceiptApiClient;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
+using SqliteProvider.Types;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -94,7 +95,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                     text: "Отправь мне свой номер телефона и ссылку на реквизиты в Тинькофф банк (если она есть).",
                     replyMarkup: new ReplyKeyboardRemove(),
                     cancellationToken: cancellationToken);
-                userRepository.ChangeUserStage(chatId, teamId, "end");
+                userRepository.ChangeUserStage(chatId, teamId, UserStage.Payment);
                 return;
             case "Нет🫣":
                 await client.SendTextMessageAsync(

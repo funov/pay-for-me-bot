@@ -1,4 +1,4 @@
-namespace SqliteProvider.Models;
+namespace SqliteProvider.Types;
 
 public enum RequisiteType
 {

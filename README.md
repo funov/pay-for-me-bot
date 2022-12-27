@@ -1,6 +1,6 @@
 # PayForMeBot
 
-Пример `appsettings.Production.json`
+Пример `appsettings.Production.json` в TelegramBotService
 
 ```
 {

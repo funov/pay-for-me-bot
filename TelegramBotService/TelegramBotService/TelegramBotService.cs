@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SqliteProvider.Repositories.UserRepository;
+using SqliteProvider.Types;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -80,7 +81,7 @@ public class TelegramBotService : ITelegramBotService
             var user = userRepository.GetUser(chatId);
             var currentStage = GetCurrentStage(user);
 
-            if (update.CallbackQuery != null && currentStage == "middle")
+            if (update.CallbackQuery != null && currentStage == UserStage.ProductSelection)
                 await productsSelectionStageMessageHandler.HandleCallbackQuery(client, callback, cancellationToken);
         }
 
@@ -94,15 +95,17 @@ public class TelegramBotService : ITelegramBotService
 
             switch (currentStage)
             {
-                case "start":
+                case UserStage.TeamAddition:
                     await teamAdditionStageMessageHandler.HandleTextAsync(client, message, cancellationToken);
                     break;
-                case "middle":
+                case UserStage.ProductSelection:
                     await productsSelectionStageMessageHandler.HandleTextAsync(client, message, cancellationToken);
                     break;
-                case "end":
+                case UserStage.Payment:
                     await paymentStageMessageHandler.HandleTextAsync(client, message, cancellationToken);
                     break;
+                default:
+                    throw new ArgumentException($"Incorrect user stage {currentStage}");
             }
         }
 
@@ -112,13 +115,13 @@ public class TelegramBotService : ITelegramBotService
             var user = userRepository.GetUser(chatId);
             var currentStage = GetCurrentStage(user);
 
-            if (currentStage == "middle")
+            if (currentStage == UserStage.ProductSelection)
                 await productsSelectionStageMessageHandler.HandlePhotoAsync(client, update.Message, cancellationToken);
         }
     }
 
-    private static string GetCurrentStage(SqliteProvider.Models.User? user)
-        => user == null ? "start" : user.Stage!;
+    private static UserStage GetCurrentStage(SqliteProvider.Models.User? user)
+        => user?.Stage ?? UserStage.TeamAddition;
 
     private Task HandlePollingErrorAsync(ITelegramBotClient client, Exception exception,
         CancellationToken cancellationToken)

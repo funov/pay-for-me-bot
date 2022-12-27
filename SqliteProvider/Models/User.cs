@@ -1,3 +1,5 @@
+using SqliteProvider.Types;
+
 namespace SqliteProvider.Models;
 
 public class User
@@ -7,5 +9,5 @@ public class User
     public Guid TeamId { get; set; }
     public string? TinkoffLink { get; set; }
     public string? PhoneNumber { get; set; }
-    public string? Stage { get; set; }
+    public UserStage Stage { get; set; }
 }

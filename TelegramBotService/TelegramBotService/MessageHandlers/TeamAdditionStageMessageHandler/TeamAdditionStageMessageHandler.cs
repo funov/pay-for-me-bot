@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserRepository;
+using SqliteProvider.Types;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -86,7 +87,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                         cancellationToken: cancellationToken
                     );
 
-                    userRepository.ChangeUserStage(chatId, userTeamId, "middle");
+                    userRepository.ChangeUserStage(chatId, userTeamId, UserStage.ProductSelection);
                 }
                 else
                 {
@@ -147,7 +148,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                 userName, teamId, chatId);
 
             userRepository.AddUser(userName, chatId, teamId);
-            userRepository.ChangeUserStage(chatId, teamId, "middle");
+            userRepository.ChangeUserStage(chatId, teamId, UserStage.ProductSelection);
 
             await client.SendTextMessageAsync(
                 chatId: chatId,

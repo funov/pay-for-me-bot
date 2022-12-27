@@ -1,3 +1,4 @@
+using SqliteProvider.Types;
 using SqliteProvider.Models;
 
 namespace SqliteProvider.Repositories.UserRepository;
@@ -6,7 +7,7 @@ public interface IUserRepository
 {
     void AddUser(string userTgId, long userChatId, Guid teamId);
     bool IsUserInDb(long userChatId);
-    void ChangeUserStage(long userChatId, Guid teamId, string state);
+    void ChangeUserStage(long userChatId, Guid teamId, UserStage stage);
     bool IsUserSentRequisite(long userChatId);
     IEnumerable<long> GetUserChatIdsByTeamId(Guid teamId);
     bool IsAllTeamHasPhoneNumber(Guid teamId);

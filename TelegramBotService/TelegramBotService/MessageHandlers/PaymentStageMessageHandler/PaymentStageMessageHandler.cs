@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using SqliteProvider.Models;
+using SqliteProvider.Types;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
@@ -78,7 +78,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                         await SendRequisitesAndDebts(client, teamChatId, cancellationToken,
                             teamUsers2Buyers2Money[teamChatId]);
 
-                        userRepository.ChangeUserStage(chatId, teamId, "start");
+                        userRepository.ChangeUserStage(chatId, teamId, UserStage.TeamAddition);
 
                         await client.SendTextMessageAsync(
                             chatId: teamChatId,
@@ -87,6 +87,9 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                             cancellationToken: cancellationToken);
                     }
 
+                    // TODO
+                    // constraints (foreign key) 
+                    // транзакции BeginTransaction, по очереди все дропает
                     userRepository.DeleteAllUsersByTeamId(teamId);
                     productRepository.DeleteAllProductsByTeamId(teamId);
                     userProductBindingRepository.DeleteAllUserProductBindingsByTeamId(teamId);

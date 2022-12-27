@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
+using SqliteProvider.Types;
 using SqliteProvider.Models;
 using SqliteProvider.Tables;
 
@@ -9,8 +10,6 @@ public class UserRepository : IUserRepository
 {
     private readonly IMapper mapper;
     private readonly DbContext db;
-
-    private static HashSet<string> states = new() { "start", "middle", "end" };
 
     public UserRepository(IConfiguration config, IMapper mapper)
     {
@@ -25,7 +24,7 @@ public class UserRepository : IUserRepository
             Username = userTgId,
             TeamId = teamId,
             UserChatId = userChatId,
-            Stage = "start",
+            Stage = UserStage.TeamAddition,
         };
 
         db.Users.Add(user);
@@ -57,18 +56,15 @@ public class UserRepository : IUserRepository
         return userTable ?? throw new InvalidOperationException($"User {chatId} not exist");
     }
 
-    public void ChangeUserStage(long userChatId, Guid teamId, string state)
+    public void ChangeUserStage(long userChatId, Guid teamId, UserStage stage)
     {
-        if (!states.Contains(state))
-            throw new InvalidOperationException($"Incorrect state {state}");
-
         var userTable = db.Users
             .FirstOrDefault(userTable => userTable.UserChatId == userChatId && userTable.TeamId == teamId);
 
         if (userTable == null)
             throw new InvalidOperationException($"User {userChatId} not exist");
 
-        userTable.Stage = state;
+        userTable.Stage = stage;
         db.SaveChanges();
     }
 

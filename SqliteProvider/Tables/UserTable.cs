@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SqliteProvider.Types;
 
 namespace SqliteProvider.Tables;
 
@@ -10,5 +11,5 @@ public class UserTable
     public Guid TeamId { get; set; }
     public string? TinkoffLink { get; set; }
     public string? PhoneNumber { get; set; }
-    public string? Stage { get; set; }
+    public UserStage Stage { get; set; }
 }
