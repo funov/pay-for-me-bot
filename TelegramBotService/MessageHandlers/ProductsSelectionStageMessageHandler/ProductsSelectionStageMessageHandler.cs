@@ -28,6 +28,9 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     private readonly IUserProductBindingRepository userProductBindingRepository;
     private readonly IBotPhrasesProvider botPhrasesProvider;
 
+    private readonly string[] goToSplitPurchasesButtons;
+    private readonly string[] transitionToEndButtons;
+
     public ProductsSelectionStageMessageHandler(
         ILogger<ProductsSelectionStageMessageHandler> log,
         IReceiptApiClient receiptApiClient,
@@ -46,6 +49,10 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         this.productRepository = productRepository;
         this.userProductBindingRepository = userProductBindingRepository;
         this.botPhrasesProvider = botPhrasesProvider;
+
+        goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases! };
+        transitionToEndButtons = new[] 
+            { botPhrasesProvider.TransitionToEndYes!, botPhrasesProvider.TransitionToEndNo! };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -57,46 +64,47 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             message.Text, chatId, userName);
 
         var user = userRepository.GetUser(chatId);
-        var teamId = user.TeamId;
+        var teamId = user!.TeamId;
 
-        switch (message.Text!)
+        if (message.Text! == botPhrasesProvider.GoToSplitPurchases!)
         {
-            // TODO Добавить ограничение завершения только на лидера группы
-            // TODO Рефакторинг
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.TransitionToEnd!,
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(transitionToEndButtons),
+                cancellationToken: cancellationToken);
+            return;
+        }
 
-            case "Перейти к разделению счёта💴":
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Ты уверен, что все участники команды уже готовы делить счет?" +
-                          "\n\n" +
-                          "После этого бот подсчитает, кто кому сколько должен и скинет реквизиты для оплаты" +
-                          "\n\n" +
-                          "Вернуться к вводу/выбору продуктов будет невозможно!",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Да!", "Нет🫣" }),
-                    cancellationToken: cancellationToken);
-                return;
-            case "/help":
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: botPhrasesProvider.Help,
-                    parseMode: ParseMode.Html,
-                    cancellationToken: cancellationToken);
-                return;
-            case "Да!":
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Отправь мне свой номер телефона и ссылку на реквизиты в Тинькофф банк (если она есть).",
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken);
-                userRepository.ChangeUserStage(chatId, teamId, UserStage.Payment);
-                return;
-            case "Нет🫣":
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: "Нажми, как будете готовы делить счет!",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Перейти к разделению счёта💴" }),
-                    cancellationToken: cancellationToken);
-                return;
+        if (message.Text! == botPhrasesProvider.TransitionToEndYes!)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.SendMeRequisites!,
+                replyMarkup: new ReplyKeyboardRemove(),
+                cancellationToken: cancellationToken);
+            userRepository.ChangeUserStage(chatId, teamId, UserStage.Payment);
+            return;
+        }
+
+        if (message.Text! == botPhrasesProvider.TransitionToEndNo!)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.PushIfReadyToSplitPurchase!,
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
+                cancellationToken: cancellationToken);
+            return;
+        }
+
+        if (message.Text! == "/help")
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.Help!,
+                parseMode: ParseMode.Html,
+                cancellationToken: cancellationToken);
+            return;
         }
 
         if (Product.TryParse(message.Text!, out var dbProduct))
@@ -126,9 +134,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: "Если вводишь продукты текстом, нужно что-то такое 🤨🤨🤨" +
-                      "\n\n<b>Оранжевые апельсины 2 200.22</b>\n\n" +
-                      "(<b>Название Количество Общая цена</b>)",
+                text: botPhrasesProvider.ExampleTextProductInput!,
                 parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken
             );
@@ -197,11 +203,11 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         }
         catch (ReceiptNotFoundException)
         {
-            problemText = "Не удалось обработать чек, возможно, на фото нет чека";
+            problemText = botPhrasesProvider.ReceiptError!;
         }
         catch (JsonException)
         {
-            problemText = "Обработка изображений временно недоступна";
+            problemText = botPhrasesProvider.ReceiptApiError!;
         }
 
         log.LogInformation("Send a '{problemText}' message to @{userName} in chat {chatId}",

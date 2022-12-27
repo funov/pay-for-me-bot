@@ -13,7 +13,8 @@ namespace TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
 
 public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 {
-    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+    private readonly string[] teamSelectionLabels;
+    private readonly string[] goToSplitPurchasesButtons;
 
     private readonly ILogger<TeamAdditionStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
@@ -33,6 +34,9 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.botPhrasesProvider = botPhrasesProvider;
+
+        teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton!, botPhrasesProvider.JoinTeamButton! };
+        goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases! };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -43,97 +47,61 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
             message.Text, chatId, userName);
 
-        // TODO Добавить ограничение завершения только на лидера группы
-        // TODO Рефакторинг
+        if (message.Text! == botPhrasesProvider.CreateTeamButton)
+        {
+            var userTeamId = Guid.NewGuid();
+
+            log.LogInformation("@{username} created a team {guid} in chat {chatId}",
+                userName, userTeamId, chatId);
+
+            userRepository.AddUser(message.Chat.Username!, chatId, userTeamId);
+
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: $"Код вашей комманды:\n\n<code>{userTeamId}</code>",
+                parseMode: ParseMode.Html,
+                replyMarkup: new ReplyKeyboardRemove(),
+                cancellationToken: cancellationToken
+            );
+
+            userRepository.ChangeUserStage(chatId, userTeamId, UserStage.ProductSelection);
+
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.StartAddingProducts!,
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+
+        if (message.Text! == botPhrasesProvider.JoinTeamButton)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.SendMeTeamId!,
+                replyMarkup: new ReplyKeyboardRemove(),
+                cancellationToken: cancellationToken
+            );
+        }
 
         switch (message.Text!)
         {
             case "/start":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Создай команду или присоединись к ней!",
+                    text: botPhrasesProvider.CreateOrJoinTeam!,
                     replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                     cancellationToken: cancellationToken);
                 break;
             case "/help":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: botPhrasesProvider.Help,
+                    text: botPhrasesProvider.Help!,
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
                 break;
-            case "Создать команду":
-                if (!IsUserInTeam(chatId))
-                {
-                    var userTeamId = Guid.NewGuid();
-
-                    log.LogInformation("@{username} created a team {guid} in chat {chatId}",
-                        userName, userTeamId, chatId);
-
-                    userRepository.AddUser(message.Chat.Username!, chatId, userTeamId);
-
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: $"Код вашей комманды:\n\n<code>{userTeamId}</code>",
-                        parseMode: ParseMode.Html,
-                        replyMarkup: new ReplyKeyboardRemove(),
-                        cancellationToken: cancellationToken
-                    );
-
-                    userRepository.ChangeUserStage(chatId, userTeamId, UserStage.ProductSelection);
-                }
-                else
-                {
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: "Ты уже в команде!",
-                        cancellationToken: cancellationToken
-                    );
-                    break;
-                }
-
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: $"Можешь начинать добавлять продукты!" +
-                          $"\n\n" +
-                          "Можешь прислать мне чек с продуктами, на котором хорошо виден куар-код." +
-                          "\n\n" +
-                          "Если чека нет, то можешь прислать мне сообщение с товаром, количеством и общей ценой." +
-                          "\n\n" +
-                          "Например, вишневый пирог 5 399.99" +
-                          "\n\n" +
-                          "Или такси до центра 1 500" +
-                          "\n\n" +
-                          "Я тут же пришлю товар/товары всем участинкам команды" +
-                          "\n\n" +
-                          $"Когда закончишь вводить/выбирать продукты, нажми на кнопку внизу ⬇",
-                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Перейти к разделению счёта💴" }),
-                    cancellationToken: cancellationToken
-                );
-                break;
-            case "Присоединиться к команде":
-                if (!IsUserInTeam(chatId))
-                {
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: "Отправь мне код вашей команды",
-                        replyMarkup: new ReplyKeyboardRemove(),
-                        cancellationToken: cancellationToken
-                    );
-                    break;
-                }
-                else
-                {
-                    await client.SendTextMessageAsync(
-                        chatId: chatId,
-                        text: "Ты уже в команде!",
-                        cancellationToken: cancellationToken
-                    );
-                    break;
-                }
         }
-
-        // TODO Дыра, что чел может обойти все это и просто скинуть Guid и присоединиться к команде
 
         if (Guid.TryParse(message.Text, out var teamId))
         {
@@ -145,20 +113,8 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: $"Можешь начинать добавлять продукты!" +
-                      $"\n\n" +
-                      "Можешь прислать мне чек с продуктами, на котором хорошо виден куар-код." +
-                      "\n\n" +
-                      "Если чека нет, то можешь прислать мне сообщение с товаром, количеством и общей ценой." +
-                      "\n\n" +
-                      "Например, вишневый пирог 5 399.99" +
-                      "\n\n" +
-                      "Или такси до центра 1 500" +
-                      "\n\n" +
-                      "Я тут же пришлю товар/товары всем участинкам команды" +
-                      "\n\n" +
-                      $"Когда закончишь вводить/выбирать продукты, нажми на кнопку внизу ⬇",
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(new[] { "Перейти к разделению счёта💴" }),
+                text: botPhrasesProvider.StartAddingProducts!,
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
                 cancellationToken: cancellationToken
             );
 

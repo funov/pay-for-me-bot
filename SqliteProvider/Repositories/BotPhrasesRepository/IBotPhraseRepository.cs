@@ -4,5 +4,5 @@ namespace SqliteProvider.Repositories.BotPhrasesRepository;
 
 public interface IBotPhraseRepository
 {
-    string? GetBotPhrase(BotPhrase phrase);
+    string? GetBotPhrase(BotPhraseType phraseType);
 }

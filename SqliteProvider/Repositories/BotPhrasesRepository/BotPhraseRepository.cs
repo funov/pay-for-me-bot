@@ -10,6 +10,6 @@ public class BotPhraseRepository : IBotPhraseRepository
     public BotPhraseRepository(IConfiguration config)
         => db = new DbContext(config.GetValue<string>("DbConnectionString"));
 
-    public string? GetBotPhrase(BotPhrase phrase)
-        => db.BotPhrases.FirstOrDefault(botPhrasesTable => botPhrasesTable.Type == phrase)?.Phrase;
+    public string? GetBotPhrase(BotPhraseType phraseType)
+        => db.BotPhrases.FirstOrDefault(botPhrasesTable => botPhrasesTable.Type == phraseType)?.Phrase;
 }

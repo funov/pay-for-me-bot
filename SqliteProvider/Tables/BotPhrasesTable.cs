@@ -6,6 +6,6 @@ namespace SqliteProvider.Tables;
 public class BotPhrasesTable
 {
     [Key] 
-    public BotPhrase Type { get; set; }
+    public BotPhraseType Type { get; set; }
     public string? Phrase { get; set; }
 }

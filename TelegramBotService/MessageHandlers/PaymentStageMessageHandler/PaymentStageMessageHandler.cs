@@ -15,7 +15,8 @@ namespace TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
 
 public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 {
-    private static string[] teamSelectionLabels = { "Создать команду", "Присоединиться к команде" };
+    private static string telephoneNumberRegexPattern = @"^((7|8|\+7)[\- ]?)(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$";
+    private static string tinkoffLinkRegexPattern = @"https://www.tinkoff.ru/rm/[a-z]+.[a-z]+[0-9]+/[a-zA-z0-9]+";
 
     private readonly ILogger<PaymentStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
@@ -23,6 +24,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
     private readonly IProductRepository productRepository;
     private readonly IUserProductBindingRepository userProductBindingRepository;
     private readonly IBotPhrasesProvider botPhrasesProvider;
+
+    private readonly string?[] teamSelectionLabels;
 
     public PaymentStageMessageHandler(
         ILogger<PaymentStageMessageHandler> log,
@@ -38,6 +41,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         this.productRepository = productRepository;
         this.userProductBindingRepository = userProductBindingRepository;
         this.botPhrasesProvider = botPhrasesProvider;
+
+        teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -51,7 +56,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         if (!IsUserSentRequisite(chatId))
         {
             var user = userRepository.GetUser(message.Chat.Id);
-            var teamId = user.TeamId;
+            var teamId = user!.TeamId;
 
             if (IsRequisiteValid(message.Text!))
             {
@@ -75,8 +80,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
                         await client.SendTextMessageAsync(
                             chatId: teamChatId,
-                            text: "Создай или присоединись к команде!",
-                            replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
+                            text: botPhrasesProvider.CreateOrJoinTeam!,
+                            replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels!),
                             cancellationToken: cancellationToken);
                     }
 
@@ -91,8 +96,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                 {
                     await client.SendTextMessageAsync(
                         chatId: chatId,
-                        text: "Ждем остальных участников 💤💤💤\n" +
-                              "Как только реквизиты отправят все, я рассчитаю чеки и вышлю реквизиты для оплаты 😎😎😎",
+                        text: botPhrasesProvider.WaitingOtherUsersRequisites!,
                         cancellationToken: cancellationToken);
                 }
             }
@@ -103,22 +107,18 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: "Ты ошибся при отправке реквизитов. Нужно отправить:" +
-                          "\n\n <b>Телефон</b> и <b>Ссылку Тинькофф</b> (если есть)" +
-                          "\n\n Через пробел или перенос строки 🤓🤓🤓",
+                    text: botPhrasesProvider.RequisitesSendingError!,
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
             }
         }
 
-        switch (message.Text!)
+        if (message.Text! == "/help")
         {
-            case "/help":
-                await client.SendTextMessageAsync(
-                    chatId: chatId,
-                    text: botPhrasesProvider.Help,
-                    cancellationToken: cancellationToken);
-                return;
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.Help!,
+                cancellationToken: cancellationToken);
         }
     }
 
@@ -167,25 +167,21 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             cancellationToken: cancellationToken
         );
 
-        if (message != "Ты никому не должен! 🤩🤩🤩" +
-            "\n\n" +
-            "Был рад помочь, до встречи!🥰🥰")
+        if (message != botPhrasesProvider.WithoutDebt)
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: "Можешь переходить к оплате. Был рад помочь, до встречи!🥰🥰",
+                text: botPhrasesProvider.Goodbye!,
                 cancellationToken: cancellationToken);
         }
     }
 
     private string MessageForUser(Dictionary<long, double> buyersToMoney)
     {
-        var message = new StringBuilder();
+        var debtMessage = new StringBuilder();
 
         if (buyersToMoney.Count == 0)
-            return "Ты никому не должен! 🤩🤩🤩" +
-                   "\n\n" +
-                   "Был рад помочь, до встречи!🥰🥰";
+            return botPhrasesProvider.WithoutDebt!;
 
         foreach (var buyerChatId in buyersToMoney.Keys)
         {
@@ -195,11 +191,11 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             switch (typeRequisites)
             {
                 case RequisiteType.PhoneNumber:
-                    message.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!,
+                    debtMessage.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!,
                         buyersToMoney[buyerChatId]));
                     break;
                 case RequisiteType.PhoneNumberAndTinkoffLink:
-                    message.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!,
+                    debtMessage.Append(GetRequisitesAndDebtsStringFormat(buyer.Username!, buyer.PhoneNumber!,
                         buyersToMoney[buyerChatId], buyer.TinkoffLink));
                     break;
                 default:
@@ -207,7 +203,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
             }
         }
 
-        return "Ты должен заплатить:\n" + message;
+        return $"Ты должен заплатить:\n\n{debtMessage}";
     }
 
     private bool IsUserSentRequisite(long chatId) => userRepository.IsUserSentRequisite(chatId);
@@ -275,14 +271,14 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
     private static bool IsTelephoneNumberValid(string telephoneNumber)
     {
-        var regex = new Regex(@"^((7|8|\+7)[\- ]?)(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$");
+        var regex = new Regex(telephoneNumberRegexPattern);
         var matches = regex.Matches(telephoneNumber);
         return matches.Count == 1;
     }
 
     private static bool IsTinkoffLinkValid(string tinkoffLink)
     {
-        var regex = new Regex(@"https://www.tinkoff.ru/rm/[a-z]+.[a-z]+[0-9]+/[a-zA-z0-9]+");
+        var regex = new Regex(tinkoffLinkRegexPattern);
         var matches = regex.Matches(tinkoffLink);
         return matches.Count == 1;
     }
