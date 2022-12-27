@@ -126,7 +126,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
         foreach (var teamChatId in teamChatIds)
         {
-            await SendRequisitesAndDebts(client, teamChatId, userIdToBuyerIdToDebt[teamChatId], cancellationToken);
+            await SendRequisitesAndDebtsAsync(client, teamChatId, userIdToBuyerIdToDebt[teamChatId], cancellationToken);
 
             userRepository.ChangeUserStage(chatId, teamId, UserStage.TeamAddition);
 
@@ -173,7 +173,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         }
     }
 
-    private async Task SendRequisitesAndDebts(ITelegramBotClient client, long chatId,
+    private async Task SendRequisitesAndDebtsAsync(ITelegramBotClient client, long chatId,
         Dictionary<long, double> buyersToMoney, CancellationToken cancellationToken)
     {
         var message = GetDebtMessageText(buyersToMoney);

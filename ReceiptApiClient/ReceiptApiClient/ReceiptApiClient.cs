@@ -18,7 +18,7 @@ public class ReceiptApiClient : IReceiptApiClient
         this.receiptApiService = receiptApiService;
     }
 
-    public async Task<Receipt> GetReceipt(byte[] receiptImageBytes)
+    public async Task<Receipt> GetReceiptAsync(byte[] receiptImageBytes)
     {
         var jObject = await receiptApiService.GetReceiptApiResult(receiptImageBytes);
 

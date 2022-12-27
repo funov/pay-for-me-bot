@@ -82,7 +82,7 @@ public class TelegramBotService : ITelegramBotService
             var currentStage = GetCurrentStage(user);
 
             if (update.CallbackQuery != null && currentStage == UserStage.ProductSelection)
-                await productsSelectionStageMessageHandler.HandleCallbackQuery(client, callback, cancellationToken);
+                await productsSelectionStageMessageHandler.HandleCallbackQueryAsync(client, callback, cancellationToken);
         }
 
         if (update.Message is { Type: MessageType.Text })

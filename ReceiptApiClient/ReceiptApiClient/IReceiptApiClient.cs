@@ -4,5 +4,5 @@ namespace ReceiptApiClient.ReceiptApiClient;
 
 public interface IReceiptApiClient
 {
-    public Task<Receipt> GetReceipt(byte[] receiptImageBytes);
+    public Task<Receipt> GetReceiptAsync(byte[] receiptImageBytes);
 }

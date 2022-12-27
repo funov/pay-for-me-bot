@@ -58,7 +58,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 
         if (message.Text! == botPhrasesProvider.CreateTeamButton)
         {
-            await HandleCreateTeam(client, chatId, userName, cancellationToken);
+            await HandleCreateTeamAsync(client, chatId, userName, cancellationToken);
             return;
         }
 
@@ -95,11 +95,11 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 
         if (Guid.TryParse(message.Text, out var teamId))
         {
-            await HandleTeamId(client, chatId, userName, teamId, cancellationToken);
+            await HandleTeamIdAsync(client, chatId, userName, teamId, cancellationToken);
         }
     }
 
-    private async Task HandleCreateTeam(
+    private async Task HandleCreateTeamAsync(
         ITelegramBotClient client,
         long chatId,
         string userName,
@@ -131,7 +131,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         );
     }
 
-    private async Task HandleTeamId(
+    private async Task HandleTeamIdAsync(
         ITelegramBotClient client,
         long chatId,
         string userName,

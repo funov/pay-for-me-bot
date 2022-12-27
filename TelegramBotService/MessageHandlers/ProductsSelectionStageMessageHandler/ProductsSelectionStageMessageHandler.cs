@@ -198,7 +198,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         {
             log.LogInformation("Send request to receipt api from @{userName} in {chatId}", userName, chatId);
 
-            var receipt = await receiptApiClient.GetReceipt(encryptedContent);
+            var receipt = await receiptApiClient.GetReceiptAsync(encryptedContent);
 
             if (receipt.Products == null)
                 return;
@@ -237,7 +237,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             cancellationToken: cancellationToken);
     }
 
-    public async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callback,
+    public async Task HandleCallbackQueryAsync(ITelegramBotClient client, CallbackQuery callback,
         CancellationToken cancellationToken)
     {
         if (callback.Message != null && callback.Data != null && Guid.TryParse(callback.Data, out var productId))
