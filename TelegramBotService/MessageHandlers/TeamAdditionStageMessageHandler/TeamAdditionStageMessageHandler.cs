@@ -44,8 +44,8 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         this.productInlineButtonSender = productInlineButtonSender;
         this.mapper = mapper;
 
-        teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton!, botPhrasesProvider.JoinTeamButton! };
-        goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases! };
+        teamSelectionLabels = new[] {botPhrasesProvider.CreateTeamButton!, botPhrasesProvider.JoinTeamButton!};
+        goToSplitPurchasesButtons = new[] {botPhrasesProvider.GoToSplitPurchases!};
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -120,8 +120,17 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             log.LogInformation("@{username} joined team {guid} in {chatId}",
                 userName, teamId, chatId);
 
+            var teamUserChatIds = userRepository
+                .GetUserChatIdsByTeamId(teamId);
+            var teamUsersUsernames = teamUserChatIds
+                .Select(x => userRepository.GetUser(x)!.Username);
+
+            await SendTeamListAsync(client, chatId, cancellationToken, teamUsersUsernames!);
+
             userRepository.AddUser(userName, chatId, teamId);
             userRepository.ChangeUserStage(chatId, teamId, UserStage.ProductSelection);
+
+            await SendNewTeammateUsernameToTeammatesAsync(teamUserChatIds, userName, client, cancellationToken);
 
             await client.SendTextMessageAsync(
                 chatId: chatId,
@@ -139,6 +148,46 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                 products.Select(product => mapper.Map<Product>(product)),
                 products.Select(product => product.Id),
                 cancellationToken);
+        }
+    }
+
+    private async Task SendNewTeammateUsernameAsync(ITelegramBotClient client, long chatId,
+        CancellationToken cancellationToken, string newUsername)
+    {
+        var text = $"@{newUsername} присоединился к команде!";
+        await client.SendTextMessageAsync(
+            chatId: chatId,
+            text: text,
+            parseMode: ParseMode.Html,
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task SendTeamListAsync(ITelegramBotClient client, long chatId,
+        CancellationToken cancellationToken, IEnumerable<string> teamUsersUsernames)
+    {
+        var header = "Добро пожаловать в команду!\n\nС тобой в команде:\n\n";
+        var body = string.Join("\n\n", teamUsersUsernames.Select(x => $"@{x}"));
+        var text = header + body;
+        await client.SendTextMessageAsync(
+            chatId: chatId,
+            text: text,
+            parseMode: ParseMode.Html,
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task SendNewTeammateUsernameToTeammatesAsync(
+        IEnumerable<long> teamUserChatIds,
+        string? userName,
+        ITelegramBotClient client,
+        CancellationToken cancellationToken)
+    {
+        foreach (var teamUserChatId in from teamUserChatId in teamUserChatIds
+                 let user = userRepository.GetUser(teamUserChatId)
+                 let teamUserName = user!.Username!
+                 where userName != null && teamUserName != userName
+                 select teamUserChatId)
+        {
+            await SendNewTeammateUsernameAsync(client, teamUserChatId, cancellationToken, userName!);
         }
     }
 }
