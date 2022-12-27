@@ -2,5 +2,5 @@ namespace TelegramBotService.BotPhrasesProvider;
 
 public interface IBotPhrasesProvider
 {
-    string Help { get; }
+    string? Help { get; }
 }

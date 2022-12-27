@@ -1,11 +1,14 @@
+using SqliteProvider.Repositories.BotPhrasesRepository;
+using SqliteProvider.Types;
+
 namespace TelegramBotService.BotPhrasesProvider;
 
 public class BotPhrasesProvider : IBotPhrasesProvider
 {
-    public string Help { get; }
+    public string? Help { get; }
 
-    public BotPhrasesProvider(IBotPhrasesProvider botPhrasesProvider)
+    public BotPhrasesProvider(IBotPhraseRepository botPhraseRepository)
     {
-        Help = botPhrasesProvider.Help;
+        Help = botPhraseRepository.GetBotPhrase(BotPhrase.Help);
     }
 }
