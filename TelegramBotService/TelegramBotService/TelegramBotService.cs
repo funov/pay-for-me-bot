@@ -8,9 +8,9 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using TelegramBotService.Exceptions;
-using TelegramBotService.TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
-using TelegramBotService.TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
-using TelegramBotService.TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
+using TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
+using TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
+using TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
 
 namespace TelegramBotService.TelegramBotService;
 

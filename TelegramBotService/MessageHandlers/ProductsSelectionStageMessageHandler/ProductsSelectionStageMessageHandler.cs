@@ -11,24 +11,14 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using TelegramBotService.BotPhrasesProvider;
 using TelegramBotService.KeyboardMarkup;
 using TelegramBotService.Models;
 
-namespace TelegramBotService.TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
+namespace TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 
 public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessageHandler
 {
-    private static string HelpMessage
-        => "❓❓❓\n\n1) Для начала нужно либо создать команду, либо вступить в существующую. 🤝🤝🤝\n\n" +
-           "2) При создании команды бот пришлет уникальный код команды. Этот код должен ввести каждый участник при присоединении." +
-           "3) Теперь можно начать вводить товары или услуги. Напиши продукт/услугу количествов штуках и цену, либо просто отправь чек " +
-           "(где хорошо виден QR-код). Далее нажми на «🛒», чтобы позже заплатить " +
-           "за этот товар. Ты увидишь «✅». Для отмены нажми еще раз на эту кнопку. 🤓🤓🤓\n\n" +
-           "4) Если ваше мероприятие закончилось, и вы выбрали за что хотите платить, кто-то должен нажать " +
-           "на кнопку «<b>Перейти к разделению счёта</b>💴».\n\n" +
-           "5) Далее каждого попросят ввести <b>номер телефона</b> и <b>ссылку Тинькофф</b> (если есть) для " +
-           "того, чтобы тебе смогли перевести деньги. 🤑🤑🤑\n\nПотом бот разошлет всем реквизиты и суммы для переводов 🎉🎉🎉";
-
     private readonly ILogger<ProductsSelectionStageMessageHandler> log;
     private readonly IReceiptApiClient receiptApiClient;
     private readonly IKeyboardMarkup keyboardMarkup;
@@ -36,6 +26,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     private readonly IUserRepository userRepository;
     private readonly IProductRepository productRepository;
     private readonly IUserProductBindingRepository userProductBindingRepository;
+    private readonly IBotPhrasesProvider botPhrasesProvider;
 
     public ProductsSelectionStageMessageHandler(
         ILogger<ProductsSelectionStageMessageHandler> log,
@@ -44,7 +35,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         IMapper mapper,
         IUserRepository userRepository,
         IProductRepository productRepository,
-        IUserProductBindingRepository userProductBindingRepository)
+        IUserProductBindingRepository userProductBindingRepository,
+        IBotPhrasesProvider botPhrasesProvider)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
@@ -53,6 +45,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.userProductBindingRepository = userProductBindingRepository;
+        this.botPhrasesProvider = botPhrasesProvider;
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -85,7 +78,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             case "/help":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: HelpMessage,
+                    text: botPhrasesProvider.Help,
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
                 return;

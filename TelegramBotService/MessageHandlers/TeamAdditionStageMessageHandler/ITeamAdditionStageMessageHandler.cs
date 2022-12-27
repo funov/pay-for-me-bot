@@ -1,9 +1,9 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace TelegramBotService.TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
+namespace TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
 
-public interface IPaymentStageMessageHandler
+public interface ITeamAdditionStageMessageHandler
 {
     Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken);
 }

@@ -1,7 +1,7 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace TelegramBotService.TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
+namespace TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 
 public interface IProductsSelectionStageMessageHandler
 {

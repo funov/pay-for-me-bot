@@ -6,12 +6,14 @@ using TelegramBotService.TelegramBotService;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
 using Serilog;
+using SqliteProvider.Repositories.BotPhrasesRepository;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
-using TelegramBotService.TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
-using TelegramBotService.TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
-using TelegramBotService.TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
+using TelegramBotService.BotPhrasesProvider;
+using TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
+using TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
+using TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
 
 namespace TelegramBotService;
 
@@ -38,6 +40,7 @@ public static class Program
 
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup.KeyboardMarkup>();
+                services.AddSingleton<IBotPhrasesProvider, BotPhrasesProvider.BotPhrasesProvider>();
 
                 services.AddSingleton<IPaymentStageMessageHandler, PaymentStageMessageHandler>();
                 services.AddSingleton<IProductsSelectionStageMessageHandler, ProductsSelectionStageMessageHandler>();
@@ -46,6 +49,7 @@ public static class Program
                 services.AddSingleton<IProductRepository, ProductRepository>();
                 services.AddSingleton<IUserRepository, UserRepository>();
                 services.AddSingleton<IUserProductBindingRepository, UserProductBindingRepository>();
+                services.AddSingleton<IBotPhraseRepository, BotPhraseRepository>();
 
                 services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
                 services.AddAutoMapper(typeof(ProductsSelectionStageMessageHandler).Assembly);
