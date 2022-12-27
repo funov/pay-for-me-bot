@@ -34,7 +34,6 @@ public class BotPhrasesProvider : IBotPhrasesProvider
         Goodbye = botPhraseRepository.GetBotPhrase(BotPhraseType.Goodbye);
         CreateTeamButton = botPhraseRepository.GetBotPhrase(BotPhraseType.CreateTeamButton);
         JoinTeamButton = botPhraseRepository.GetBotPhrase(BotPhraseType.JoinTeamButton);
-        CreateTeamButton = botPhraseRepository.GetBotPhrase(BotPhraseType.CreateOrJoinTeam);
         GoToSplitPurchases = botPhraseRepository.GetBotPhrase(BotPhraseType.GoToSplitPurchases);
         TransitionToEnd = botPhraseRepository.GetBotPhrase(BotPhraseType.TransitionToEnd);
         TransitionToEndYes = botPhraseRepository.GetBotPhrase(BotPhraseType.TransitionToEndYes);
