@@ -6,6 +6,7 @@ using SqliteProvider.Types;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
+using SqliteProvider.Transactions.DeleteAllTeamIdTransaction;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -26,6 +27,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
     private readonly IUserProductBindingRepository userProductBindingRepository;
     private readonly IBotPhrasesProvider botPhrasesProvider;
     private readonly IDebtsCalculator debtsCalculator;
+    private readonly IDeleteAllTeamIdTransaction deleteAllTeamIdTransaction;
 
     private readonly string?[] teamSelectionLabels;
     private readonly char[] requisitesSeparators;
@@ -37,7 +39,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         IProductRepository productRepository,
         IUserProductBindingRepository userProductBindingRepository,
         IBotPhrasesProvider botPhrasesProvider,
-        IDebtsCalculator debtsCalculator)
+        IDebtsCalculator debtsCalculator,
+        IDeleteAllTeamIdTransaction deleteAllTeamIdTransaction)
     {
         this.log = log;
         this.keyboardMarkup = keyboardMarkup;
@@ -46,6 +49,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         this.userProductBindingRepository = userProductBindingRepository;
         this.botPhrasesProvider = botPhrasesProvider;
         this.debtsCalculator = debtsCalculator;
+        this.deleteAllTeamIdTransaction = deleteAllTeamIdTransaction;
 
         teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton };
         requisitesSeparators = new[] { '\n', ' ' };
@@ -138,12 +142,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                 cancellationToken: cancellationToken);
         }
 
-        // TODO
-        // constraints (foreign key) 
-        // транзакции BeginTransaction, по очереди все дропает
-        userRepository.DeleteAllUsersByTeamId(teamId);
-        productRepository.DeleteAllProductsByTeamId(teamId);
-        userProductBindingRepository.DeleteAllUserProductBindingsByTeamId(teamId);
+        deleteAllTeamIdTransaction.DeleteAllTeamId(teamId);
     }
 
     private void AddPhoneNumberAndTinkoffLink(string messageText, long chatId)
