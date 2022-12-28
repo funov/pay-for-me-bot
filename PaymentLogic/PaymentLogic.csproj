@@ -10,4 +10,9 @@
       <ProjectReference Include="..\SqliteProvider\SqliteProvider.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="RequisiteParser\ITelephoneNumber.cs" />
+      <Compile Remove="RequisiteParser\IBankingLink.cs" />
+    </ItemGroup>
+
 </Project>

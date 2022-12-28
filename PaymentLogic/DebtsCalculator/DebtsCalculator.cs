@@ -2,7 +2,7 @@ using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
 
-namespace DebtsCalculator;
+namespace PaymentLogic;
 
 public class DebtsCalculator : IDebtsCalculator
 {

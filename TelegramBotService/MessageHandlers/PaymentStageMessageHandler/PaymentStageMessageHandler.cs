@@ -1,7 +1,11 @@
 ﻿using System.Text;
-using System.Text.RegularExpressions;
-using DebtsCalculator;
+using PaymentLogic;
 using Microsoft.Extensions.Logging;
+using PaymentLogic.RequisiteParser.BankingLinkVerifier;
+using PaymentLogic.RequisiteParser.BankingLinkVerifier.Implementations;
+using PaymentLogic.RequisiteParser.RequisiteMessagePaesser;
+using PaymentLogic.RequisiteParser.TelePhoneNumbersVerifier;
+using PaymentLogic.RequisiteParser.TelePhoneNumbersVerifier.Implementations;
 using SqliteProvider.Types;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
@@ -17,9 +21,10 @@ namespace TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
 
 public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 {
-    private static string telephoneNumberRegexPattern = @"^((7|8|\+7)[\- ]?)(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$";
-    private static string tinkoffLinkRegexPattern = @"https://www.tinkoff.ru/rm/[a-z]+.[a-z]+[0-9]+/[a-zA-z0-9]+";
-
+    // TODO подумать, а вдруг тут можно отказаться от спецификации и нужное протягивать в DI
+    private static TelePhoneNumberVerifier telePhoneNumbersVerifier = new RussianTelePhoneNumberVerifier();
+    private static BankingLinkVerifier bankingLinkVerifier = new TinkoffLinkVerifier();
+    
     private readonly ILogger<PaymentStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IUserRepository userRepository;
@@ -51,8 +56,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         this.debtsCalculator = debtsCalculator;
         this.deleteAllTeamIdTransaction = deleteAllTeamIdTransaction;
 
-        teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton };
-        requisitesSeparators = new[] { '\n', ' ' };
+        teamSelectionLabels = new[] {botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton};
+        requisitesSeparators = new[] {'\n', ' '};
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -88,7 +93,9 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         var user = userRepository.GetUser(chatId);
         var teamId = user!.TeamId;
 
-        if (IsRequisiteValid(messageText))
+        if (RequisiteMessageParser.IsRequisiteValid(messageText,
+                telePhoneNumbersVerifier,
+                bankingLinkVerifier))
         {
             log.LogInformation("Requisite is valid '{messageText}' in chat {chatId} from @{userName}",
                 messageText, chatId, userName);
@@ -144,7 +151,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
         deleteAllTeamIdTransaction.DeleteAllTeamId(teamId);
     }
-
+    
     private void AddPhoneNumberAndTinkoffLink(string messageText, long chatId)
     {
         messageText = messageText.Trim();
@@ -157,14 +164,14 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                 break;
             case 2:
             {
-                if (IsTelephoneNumberValid(requisites[0]))
+                if (telePhoneNumbersVerifier.IsTelePhoneNumberValid(requisites[0]))
                     userRepository.AddPhoneNumber(chatId, requisites[0]);
-                else if (IsTelephoneNumberValid(requisites[1]))
+                else if (telePhoneNumbersVerifier.IsTelePhoneNumberValid(requisites[1]))
                     userRepository.AddPhoneNumber(chatId, requisites[1]);
 
-                if (IsTinkoffLinkValid(requisites[0]))
+                if (bankingLinkVerifier.IsBankingLinkValid(requisites[0]))
                     userRepository.AddTinkoffLink(chatId, requisites[0]);
-                else if (IsTinkoffLinkValid(requisites[1]))
+                else if (bankingLinkVerifier.IsBankingLinkValid(requisites[1]))
                     userRepository.AddTinkoffLink(chatId, requisites[1]);
 
                 break;
@@ -223,42 +230,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
         return $"Тебе нужно заплатить:\n\n{debtMessage}";
     }
-
-    private static bool IsRequisiteValid(string text)
-    {
-        text = text.Trim();
-        var requisites = text.Split();
-
-        if (requisites.Length == 2)
-            return IsTelephoneNumberValid(requisites[0]) && IsTinkoffLinkValid(requisites[1]);
-        if (requisites.Length != 1)
-            return false;
-
-        var phoneAndLink = requisites[0].Split(" ");
-
-        return phoneAndLink.Length switch
-        {
-            > 2 => false,
-            1 => IsTelephoneNumberValid(phoneAndLink[0]),
-            2 => IsTelephoneNumberValid(phoneAndLink[0]) && IsTinkoffLinkValid(phoneAndLink[1]),
-            _ => false
-        };
-    }
-
-    private static bool IsTelephoneNumberValid(string telephoneNumber)
-    {
-        var regex = new Regex(telephoneNumberRegexPattern);
-        var matches = regex.Matches(telephoneNumber);
-        return matches.Count == 1;
-    }
-
-    private static bool IsTinkoffLinkValid(string tinkoffLink)
-    {
-        var regex = new Regex(tinkoffLinkRegexPattern);
-        var matches = regex.Matches(tinkoffLink);
-        return matches.Count == 1;
-    }
-
+    
     private static string GetRequisitesAndDebtsMessageText(string buyerUserName, string phoneNumber,
         double money, string? tinkoffLink = null)
         => tinkoffLink == null
