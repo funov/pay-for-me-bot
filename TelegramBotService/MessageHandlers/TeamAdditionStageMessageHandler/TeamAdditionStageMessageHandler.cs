@@ -134,12 +134,12 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
     private async Task HandleTeamIdAsync(
         ITelegramBotClient client,
         long chatId,
-        string userName,
+        string username,
         Guid teamId,
         CancellationToken cancellationToken)
     {
         log.LogInformation("@{username} joined team {guid} in {chatId}",
-            userName, teamId, chatId);
+            username, teamId, chatId);
 
         var teamChatIds = userRepository
             .GetUserChatIdsByTeamId(teamId)
@@ -149,10 +149,13 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 
         await SendTeamListAsync(client, chatId, teamUsernames!, cancellationToken);
 
-        userRepository.AddUser(userName, chatId, teamId);
+        log.LogInformation("Send team list to @{username} with team {guid} in chat {chatId}",
+            username, teamId, chatId);
+
+        userRepository.AddUser(username, chatId, teamId);
         userRepository.ChangeUserStage(chatId, teamId, UserStage.ProductSelection);
 
-        await SendNewUserToTeammatesAsync(client, teamChatIds, userName, cancellationToken);
+        await SendNewUserToTeammatesAsync(client, teamChatIds, username, teamId, cancellationToken);
 
         await client.SendTextMessageAsync(
             chatId: chatId,
@@ -166,7 +169,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         await productInlineButtonSender.SendProductsInlineButtonsAsync(
             client,
             chatId,
-            userName,
+            username,
             products.Select(product => mapper.Map<Product>(product)),
             products.Select(product => product.Id),
             cancellationToken);
@@ -191,6 +194,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         ITelegramBotClient client,
         IEnumerable<long> teamChatIds,
         string? username,
+        Guid teamId,
         CancellationToken cancellationToken)
     {
         foreach (var chatId in from teamChatId in teamChatIds
@@ -199,6 +203,9 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                  where username != null && teamUserName != username
                  select teamChatId)
         {
+            log.LogInformation("@{username} created a team {guid} in chat {chatId}",
+                username, teamId, chatId);
+
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: $"@{username} присоединился к команде!",

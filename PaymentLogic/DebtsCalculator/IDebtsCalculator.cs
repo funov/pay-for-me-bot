@@ -1,4 +1,4 @@
-namespace PaymentLogic;
+namespace PaymentLogic.DebtsCalculator;
 
 public interface IDebtsCalculator
 {

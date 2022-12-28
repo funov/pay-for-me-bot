@@ -1,23 +1,25 @@
-﻿using PaymentLogic.RequisiteParser.BankingLinkVerifier.Implementations;
-using PaymentLogic.RequisiteParser.TelePhoneNumbersVerifier;
-using PaymentLogic.RequisiteParser.TelePhoneNumbersVerifier.Implementations;
+﻿namespace PaymentLogic.RequisiteParser.RequisiteMessageParser;
 
-namespace PaymentLogic.RequisiteParser.RequisiteMessagePaesser;
-
-public class RequisiteMessageParser
+public class RequisiteMessageParser : IRequisiteMessageParser
 {
-    // TODO мб подумать насчет выноса этих полей
-    
-    public static bool IsRequisiteValid(string text, TelePhoneNumberVerifier telePhoneNumbersVerifier,
+    public PhoneNumberVerifier.PhoneNumberVerifier PhoneNumbersVerifier { get; }
+    public BankingLinkVerifier.BankingLinkVerifier BankingLinkVerifier { get; }
+
+    public RequisiteMessageParser(PhoneNumberVerifier.PhoneNumberVerifier phoneNumbersVerifier,
         BankingLinkVerifier.BankingLinkVerifier bankingLinkVerifier)
+    {
+        PhoneNumbersVerifier = phoneNumbersVerifier;
+        BankingLinkVerifier = bankingLinkVerifier;
+    }
+
+    public bool IsRequisiteValid(string text)
     {
         text = text.Trim();
         var requisites = text.Split();
 
         if (requisites.Length == 2)
-            return
-                telePhoneNumbersVerifier.IsTelePhoneNumberValid(requisites[0])
-                && bankingLinkVerifier.IsBankingLinkValid(requisites[1]);
+            return PhoneNumbersVerifier.IsPhoneNumberValid(requisites[0])
+                   && BankingLinkVerifier.IsBankingLinkValid(requisites[1]);
         if (requisites.Length != 1)
             return false;
 
@@ -26,9 +28,9 @@ public class RequisiteMessageParser
         return phoneAndLink.Length switch
         {
             > 2 => false,
-            1 => telePhoneNumbersVerifier.IsTelePhoneNumberValid(phoneAndLink[0]),
-            2 => telePhoneNumbersVerifier.IsTelePhoneNumberValid(phoneAndLink[0])
-                 && bankingLinkVerifier.IsBankingLinkValid(phoneAndLink[1]),
+            1 => PhoneNumbersVerifier.IsPhoneNumberValid(phoneAndLink[0]),
+            2 => PhoneNumbersVerifier.IsPhoneNumberValid(phoneAndLink[0])
+                 && BankingLinkVerifier.IsBankingLinkValid(phoneAndLink[1]),
             _ => false
         };
     }

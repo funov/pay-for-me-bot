@@ -1,14 +1,8 @@
 ﻿using System.Text;
-using PaymentLogic;
 using Microsoft.Extensions.Logging;
-using PaymentLogic.RequisiteParser.BankingLinkVerifier;
-using PaymentLogic.RequisiteParser.BankingLinkVerifier.Implementations;
-using PaymentLogic.RequisiteParser.RequisiteMessagePaesser;
-using PaymentLogic.RequisiteParser.TelePhoneNumbersVerifier;
-using PaymentLogic.RequisiteParser.TelePhoneNumbersVerifier.Implementations;
+using PaymentLogic.DebtsCalculator;
+using PaymentLogic.RequisiteParser.RequisiteMessageParser;
 using SqliteProvider.Types;
-using SqliteProvider.Repositories.ProductRepository;
-using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
 using SqliteProvider.Transactions.DeleteAllTeamIdTransaction;
 using Telegram.Bot;
@@ -21,17 +15,12 @@ namespace TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
 
 public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 {
-    // TODO подумать, а вдруг тут можно отказаться от спецификации и нужное протягивать в DI
-    private static TelePhoneNumberVerifier telePhoneNumbersVerifier = new RussianTelePhoneNumberVerifier();
-    private static BankingLinkVerifier bankingLinkVerifier = new TinkoffLinkVerifier();
-
     private readonly ILogger<PaymentStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IUserRepository userRepository;
-    private readonly IProductRepository productRepository;
-    private readonly IUserProductBindingRepository userProductBindingRepository;
     private readonly IBotPhrasesProvider botPhrasesProvider;
     private readonly IDebtsCalculator debtsCalculator;
+    private readonly IRequisiteMessageParser requisiteMessageParser;
     private readonly IDeleteAllTeamIdTransaction deleteAllTeamIdTransaction;
 
     private readonly string?[] teamSelectionLabels;
@@ -41,23 +30,21 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         ILogger<PaymentStageMessageHandler> log,
         IKeyboardMarkup keyboardMarkup,
         IUserRepository userRepository,
-        IProductRepository productRepository,
-        IUserProductBindingRepository userProductBindingRepository,
         IBotPhrasesProvider botPhrasesProvider,
         IDebtsCalculator debtsCalculator,
+        IRequisiteMessageParser requisiteMessageParser,
         IDeleteAllTeamIdTransaction deleteAllTeamIdTransaction)
     {
         this.log = log;
         this.keyboardMarkup = keyboardMarkup;
         this.userRepository = userRepository;
-        this.productRepository = productRepository;
-        this.userProductBindingRepository = userProductBindingRepository;
         this.botPhrasesProvider = botPhrasesProvider;
         this.debtsCalculator = debtsCalculator;
+        this.requisiteMessageParser = requisiteMessageParser;
         this.deleteAllTeamIdTransaction = deleteAllTeamIdTransaction;
 
-        teamSelectionLabels = new[] {botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton};
-        requisitesSeparators = new[] {'\n', ' '};
+        teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton };
+        requisitesSeparators = new[] { '\n', ' ' };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -93,9 +80,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         var user = userRepository.GetUser(chatId);
         var teamId = user!.TeamId;
 
-        if (RequisiteMessageParser.IsRequisiteValid(messageText,
-                telePhoneNumbersVerifier,
-                bankingLinkVerifier))
+        if (requisiteMessageParser.IsRequisiteValid(messageText))
         {
             log.LogInformation("Requisite is valid '{messageText}' in chat {chatId} from @{userName}",
                 messageText, chatId, userName);
@@ -193,14 +178,14 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                 break;
             case 2:
             {
-                if (telePhoneNumbersVerifier.IsTelePhoneNumberValid(requisites[0]))
+                if (requisiteMessageParser.PhoneNumbersVerifier.IsPhoneNumberValid(requisites[0]))
                     userRepository.AddPhoneNumber(chatId, requisites[0]);
-                else if (telePhoneNumbersVerifier.IsTelePhoneNumberValid(requisites[1]))
+                else if (requisiteMessageParser.PhoneNumbersVerifier.IsPhoneNumberValid(requisites[1]))
                     userRepository.AddPhoneNumber(chatId, requisites[1]);
 
-                if (bankingLinkVerifier.IsBankingLinkValid(requisites[0]))
+                if (requisiteMessageParser.BankingLinkVerifier.IsBankingLinkValid(requisites[0]))
                     userRepository.AddTinkoffLink(chatId, requisites[0]);
-                else if (bankingLinkVerifier.IsBankingLinkValid(requisites[1]))
+                else if (requisiteMessageParser.BankingLinkVerifier.IsBankingLinkValid(requisites[1]))
                     userRepository.AddTinkoffLink(chatId, requisites[1]);
 
                 break;

@@ -1,7 +1,12 @@
-﻿using PaymentLogic;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PaymentLogic.DebtsCalculator;
+using PaymentLogic.RequisiteParser.BankingLinkVerifier;
+using PaymentLogic.RequisiteParser.BankingLinkVerifier.Implementations;
+using PaymentLogic.RequisiteParser.PhoneNumberVerifier;
+using PaymentLogic.RequisiteParser.PhoneNumberVerifier.Implementations;
+using PaymentLogic.RequisiteParser.RequisiteMessageParser;
 using TelegramBotService.TelegramBotService;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
@@ -41,7 +46,10 @@ public static class Program
                 services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient.ReceiptApiClient>();
                 services.AddHttpClient<ReceiptApiService>();
 
-                services.AddSingleton<IDebtsCalculator, PaymentLogic.DebtsCalculator>();
+                services.AddSingleton<IDebtsCalculator, DebtsCalculator>();
+                services.AddSingleton<PhoneNumberVerifier, RussianPhoneNumberVerifier>();
+                services.AddSingleton<BankingLinkVerifier, TinkoffLinkVerifier>();
+                services.AddSingleton<IRequisiteMessageParser, RequisiteMessageParser>();
 
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
