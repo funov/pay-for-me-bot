@@ -52,15 +52,15 @@ public class UserProductBindingRepository : IUserProductBindingRepository
         db.SaveChanges();
     }
 
-    public void DeleteAllUserProductBindingsByTeamId(Guid teamId)
+    public void DeleteAllUserProductBindingsByTeamId(DbContext transactionDbContext, Guid teamId)
     {
-        var bindingTables = db.UserProductBindings
+        var bindingTables = transactionDbContext.UserProductBindings
             .Where(bindingTable => bindingTable.TeamId == teamId);
 
         foreach (var bindingTable in bindingTables)
-            db.UserProductBindings.Remove(bindingTable);
+            transactionDbContext.UserProductBindings.Remove(bindingTable);
 
-        db.SaveChanges();
+        transactionDbContext.SaveChanges();
     }
 
     public int GetUserProductBindingCount(Guid productId)

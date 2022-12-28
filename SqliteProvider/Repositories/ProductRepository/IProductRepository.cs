@@ -7,7 +7,7 @@ public interface IProductRepository
     void AddProduct(Product product);
     void AddProducts(IEnumerable<Product> productModels);
     IEnumerable<Product> GetProductsByTeamId(Guid teamId);
-    void DeleteAllProductsByTeamId(Guid teamId);
+    void DeleteAllProductsByTeamId(DbContext transactionDbContext, Guid teamId);
     long GetBuyerChatId(Guid productId);
     double GetProductTotalPriceByProductId(Guid productId);
 }

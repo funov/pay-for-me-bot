@@ -106,14 +106,14 @@ public class UserRepository : IUserRepository
         return hasPhoneNumberUsersCount == teamUsersCount;
     }
 
-    public void DeleteAllUsersByTeamId(Guid teamId)
+    public void DeleteAllUsersByTeamId(DbContext transactionDbContext, Guid teamId)
     {
-        var userTables = db.Users
+        var userTables = transactionDbContext.Users
             .Where(userTable => userTable.TeamId == teamId);
 
         foreach (var userTable in userTables)
-            db.Users.Remove(userTable);
+            transactionDbContext.Users.Remove(userTable);
 
-        db.SaveChanges();
+        transactionDbContext.SaveChanges();
     }
 }

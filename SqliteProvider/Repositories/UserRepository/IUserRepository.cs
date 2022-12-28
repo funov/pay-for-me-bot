@@ -10,7 +10,7 @@ public interface IUserRepository
     bool IsUserSentRequisite(long userChatId);
     IEnumerable<long> GetUserChatIdsByTeamId(Guid teamId);
     bool IsAllTeamHasPhoneNumber(Guid teamId);
-    void DeleteAllUsersByTeamId(Guid teamId);
+    void DeleteAllUsersByTeamId(DbContext transactionDbContext, Guid teamId);
     User? GetUser(long userChatId);
     void AddPhoneNumber(long userChatId, string telephoneNumber);
     void AddTinkoffLink(long userChatId, string tinkoffLink);

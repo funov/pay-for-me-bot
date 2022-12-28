@@ -39,15 +39,15 @@ public class ProductRepository : IProductRepository
             .Select(productTable => mapper.Map<Product>(productTable));
     }
 
-    public void DeleteAllProductsByTeamId(Guid teamId)
+    public void DeleteAllProductsByTeamId(DbContext transactionDbContext, Guid teamId)
     {
-        var productTables = db.Products
+        var productTables = transactionDbContext.Products
             .Where(productTable => productTable.TeamId == teamId);
 
         foreach (var productTable in productTables)
-            db.Products.Remove(productTable);
+            transactionDbContext.Products.Remove(productTable);
 
-        db.SaveChanges();
+        transactionDbContext.SaveChanges();
     }
 
     public long GetBuyerChatId(Guid productId)

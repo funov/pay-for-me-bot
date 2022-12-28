@@ -34,15 +34,14 @@ public class DeleteAllTeamIdTransaction : IDeleteAllTeamIdTransaction
 
         try
         {
-            userRepository.DeleteAllUsersByTeamId(teamId);
-            productRepository.DeleteAllProductsByTeamId(teamId);
-            userProductBindingRepository.DeleteAllUserProductBindingsByTeamId(teamId);
+            userRepository.DeleteAllUsersByTeamId(db, teamId);
+            productRepository.DeleteAllProductsByTeamId(db, teamId);
+            userProductBindingRepository.DeleteAllUserProductBindingsByTeamId(db, teamId);
 
             transaction.Commit();
         }
         catch (Exception)
         {
-            transaction.Rollback();
             throw new DeleteAllTeamIdException("Fail remove, db rollback");
         }
     }
