@@ -226,9 +226,9 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
     private static string GetRequisitesAndDebtsMessageText(string buyerUserName, string phoneNumber,
         double money, string? tinkoffLink = null)
         => tinkoffLink == null
-            ? string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> —",
-                $"\n<b>{Math.Round(money, 1)}руб.</b>\n")
-            : string.Join(" ", $"@{buyerUserName}", $"<code>{phoneNumber}</code> \n",
-                $"\n<code>{tinkoffLink}</code> \n",
-                $"\n<b>{Math.Round(money, 1)}руб.</b>");
+            ? string.Join("\n", $"@{buyerUserName}", $"<code>{phoneNumber}</code>",
+                $"\n<b>{Math.Round(money, 1)}руб.</b>\n\n")
+            : string.Join("\n", $"@{buyerUserName}", $"<code>{phoneNumber}</code>",
+                $"<code>{tinkoffLink}</code>",
+                $"\n<b>{Math.Round(money, 1)}руб.</b>\n\n");
 }

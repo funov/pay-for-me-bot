@@ -185,7 +185,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: $"Добро пожаловать в команду!\n\n\n\nС тобой в команде:\n\n{body}",
+            text: $"Добро пожаловать в команду!\n\nС тобой в команде:\n\n{body}",
             parseMode: ParseMode.Html,
             cancellationToken: cancellationToken);
     }
