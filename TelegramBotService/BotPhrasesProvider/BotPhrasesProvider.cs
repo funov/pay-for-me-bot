@@ -5,25 +5,25 @@ namespace TelegramBotService.BotPhrasesProvider;
 
 public class BotPhrasesProvider : IBotPhrasesProvider
 {
-    public string? Help { get; }
-    public string? WaitingOtherUsersRequisites { get; }
-    public string? RequisitesSendingError { get; }
-    public string? WithoutDebt { get; }
-    public string? Goodbye { get; }
-    public string? CreateTeamButton { get; }
-    public string? JoinTeamButton { get; }
-    public string? CreateOrJoinTeam { get; }
-    public string? GoToSplitPurchases { get; }
-    public string? TransitionToEnd { get; }
-    public string? TransitionToEndYes { get; }
-    public string? TransitionToEndNo { get; }
-    public string? PushIfReadyToSplitPurchase { get; }
-    public string? SendMeRequisites { get; }
-    public string? ExampleTextProductInput { get; }
-    public string? ReceiptError { get; }
-    public string? ReceiptApiError { get; }
-    public string? StartAddingProducts { get; }
-    public string? SendMeTeamId { get; }
+    public string Help { get; }
+    public string WaitingOtherUsersRequisites { get; }
+    public string RequisitesSendingError { get; }
+    public string WithoutDebt { get; }
+    public string Goodbye { get; }
+    public string CreateTeamButton { get; }
+    public string JoinTeamButton { get; }
+    public string CreateOrJoinTeam { get; }
+    public string GoToSplitPurchases { get; }
+    public string TransitionToEnd { get; }
+    public string TransitionToEndYes { get; }
+    public string TransitionToEndNo { get; }
+    public string PushIfReadyToSplitPurchase { get; }
+    public string SendMeRequisites { get; }
+    public string ExampleTextProductInput { get; }
+    public string ReceiptError { get; }
+    public string ReceiptApiError { get; }
+    public string StartAddingProducts { get; }
+    public string SendMeTeamId { get; }
 
     public BotPhrasesProvider(IBotPhraseRepository botPhraseRepository)
     {

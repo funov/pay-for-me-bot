@@ -11,6 +11,7 @@ using TelegramBotService.TelegramBotService;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
 using Serilog;
+using SqliteProvider.Exceptions;
 using SqliteProvider.Repositories.BotPhrasesRepository;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
@@ -76,7 +77,18 @@ public static class Program
             .UseSerilog()
             .Build();
 
-        var service = ActivatorUtilities.CreateInstance<TelegramBotService.TelegramBotService>(host.Services);
+        TelegramBotService.TelegramBotService service;
+
+        try
+        {
+            service = ActivatorUtilities.CreateInstance<TelegramBotService.TelegramBotService>(host.Services);
+        }
+        catch (EmptyBotPhrasesException)
+        {
+            Log.Logger.Error("Something went wrong with BotPhrases table in db");
+            return;
+        }
+
         await service.Run();
     }
 
