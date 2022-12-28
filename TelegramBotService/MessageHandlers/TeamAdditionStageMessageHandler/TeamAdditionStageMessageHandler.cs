@@ -44,8 +44,8 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         this.productInlineButtonSender = productInlineButtonSender;
         this.mapper = mapper;
 
-        teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton!, botPhrasesProvider.JoinTeamButton! };
-        splitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases! };
+        teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton };
+        splitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -66,7 +66,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: botPhrasesProvider.SendMeTeamId!,
+                text: botPhrasesProvider.SendMeTeamId,
                 parseMode: ParseMode.Html,
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken
@@ -79,7 +79,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             case "/start":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: botPhrasesProvider.CreateOrJoinTeam!,
+                    text: botPhrasesProvider.CreateOrJoinTeam,
                     parseMode: ParseMode.Html,
                     replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                     cancellationToken: cancellationToken);
@@ -87,7 +87,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             case "/help":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
-                    text: botPhrasesProvider.Help!,
+                    text: botPhrasesProvider.Help,
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
                 break;
@@ -124,7 +124,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: botPhrasesProvider.StartAddingProducts!,
+            text: botPhrasesProvider.StartAddingProducts,
             parseMode: ParseMode.Html,
             replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(splitPurchasesButtons),
             cancellationToken: cancellationToken
@@ -159,7 +159,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: botPhrasesProvider.StartAddingProducts!,
+            text: botPhrasesProvider.StartAddingProducts,
             parseMode: ParseMode.Html,
             replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(splitPurchasesButtons),
             cancellationToken: cancellationToken

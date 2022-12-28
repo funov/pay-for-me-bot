@@ -55,8 +55,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         this.productInlineButtonSender = productInlineButtonSender;
 
         transitionToEndButtons = new[]
-            { botPhrasesProvider.TransitionToEndYes!, botPhrasesProvider.TransitionToEndNo! };
-        goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases! };
+            { botPhrasesProvider.TransitionToEndYes, botPhrasesProvider.TransitionToEndNo };
+        goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -70,22 +70,22 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         var user = userRepository.GetUser(chatId);
         var teamId = user!.TeamId;
 
-        if (message.Text! == botPhrasesProvider.GoToSplitPurchases!)
+        if (message.Text! == botPhrasesProvider.GoToSplitPurchases)
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: botPhrasesProvider.TransitionToEnd!,
+                text: botPhrasesProvider.TransitionToEnd,
                 parseMode: ParseMode.Html,
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(transitionToEndButtons),
                 cancellationToken: cancellationToken);
             return;
         }
 
-        if (message.Text! == botPhrasesProvider.TransitionToEndYes!)
+        if (message.Text! == botPhrasesProvider.TransitionToEndYes)
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: botPhrasesProvider.SendMeRequisites!,
+                text: botPhrasesProvider.SendMeRequisites,
                 parseMode: ParseMode.Html,
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
@@ -93,11 +93,11 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             return;
         }
 
-        if (message.Text! == botPhrasesProvider.TransitionToEndNo!)
+        if (message.Text! == botPhrasesProvider.TransitionToEndNo)
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: botPhrasesProvider.PushIfReadyToSplitPurchase!,
+                text: botPhrasesProvider.PushIfReadyToSplitPurchase,
                 parseMode: ParseMode.Html,
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
                 cancellationToken: cancellationToken);
@@ -108,7 +108,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: botPhrasesProvider.Help!,
+                text: botPhrasesProvider.Help,
                 parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken);
             return;
@@ -125,7 +125,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: botPhrasesProvider.ExampleTextProductInput!,
+            text: botPhrasesProvider.ExampleTextProductInput,
             parseMode: ParseMode.Html,
             cancellationToken: cancellationToken
         );
@@ -220,11 +220,11 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         }
         catch (ReceiptNotFoundException)
         {
-            problemText = botPhrasesProvider.ReceiptError!;
+            problemText = botPhrasesProvider.ReceiptError;
         }
         catch (JsonException)
         {
-            problemText = botPhrasesProvider.ReceiptApiError!;
+            problemText = botPhrasesProvider.ReceiptApiError;
         }
 
         log.LogInformation("Send a '{problemText}' message to @{userName} in chat {chatId}",

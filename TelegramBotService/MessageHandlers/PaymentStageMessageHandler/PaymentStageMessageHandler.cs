@@ -64,7 +64,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: botPhrasesProvider.Help!,
+                text: botPhrasesProvider.Help,
                 parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken);
         }
@@ -95,7 +95,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: botPhrasesProvider.WaitingOtherUsersRequisites!,
+                text: botPhrasesProvider.WaitingOtherUsersRequisites,
                 parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken);
             return;
@@ -106,7 +106,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
         await client.SendTextMessageAsync(
             chatId: chatId,
-            text: botPhrasesProvider.RequisitesSendingError!,
+            text: botPhrasesProvider.RequisitesSendingError,
             parseMode: ParseMode.Html,
             cancellationToken: cancellationToken);
     }
@@ -140,7 +140,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         {
             await client.SendTextMessageAsync(
                 chatId: chatId,
-                text: botPhrasesProvider.Goodbye!,
+                text: botPhrasesProvider.Goodbye,
                 parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken);
         }
@@ -159,7 +159,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
             await client.SendTextMessageAsync(
                 chatId: teamChatId,
-                text: botPhrasesProvider.CreateOrJoinTeam!,
+                text: botPhrasesProvider.CreateOrJoinTeam,
                 parseMode: ParseMode.Html,
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels!),
                 cancellationToken: cancellationToken);
@@ -198,7 +198,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         var debtMessage = new StringBuilder();
 
         if (buyersToMoney.Count == 0)
-            return botPhrasesProvider.WithoutDebt!;
+            return botPhrasesProvider.WithoutDebt;
 
         foreach (var buyerChatId in buyersToMoney.Keys)
         {
