@@ -24,7 +24,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
     // TODO подумать, а вдруг тут можно отказаться от спецификации и нужное протягивать в DI
     private static TelePhoneNumberVerifier telePhoneNumbersVerifier = new RussianTelePhoneNumberVerifier();
     private static BankingLinkVerifier bankingLinkVerifier = new TinkoffLinkVerifier();
-    
+
     private readonly ILogger<PaymentStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IUserRepository userRepository;
@@ -132,8 +132,39 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         Guid teamId,
         CancellationToken cancellationToken)
     {
-        var userIdToBuyerIdToDebt = debtsCalculator.GetUserIdToBuyerIdToDebt(teamId);
         var teamChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
+
+        await CompleteTeamsAndSendDebtsAsync(client, teamChatIds, teamId, chatId, cancellationToken);
+
+        deleteAllTeamIdTransaction.DeleteAllTeamId(teamId);
+    }
+
+    private async Task SendRequisitesAndDebtsAsync(ITelegramBotClient client, long chatId,
+        Dictionary<long, double> buyersToMoney, CancellationToken cancellationToken)
+    {
+        var message = GetDebtMessageText(buyersToMoney);
+
+        await client.SendTextMessageAsync(
+            chatId: chatId,
+            text: message,
+            parseMode: ParseMode.Html,
+            cancellationToken: cancellationToken
+        );
+
+        if (message != botPhrasesProvider.WithoutDebt)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.Goodbye!,
+                parseMode: ParseMode.Html,
+                cancellationToken: cancellationToken);
+        }
+    }
+
+    private async Task CompleteTeamsAndSendDebtsAsync(ITelegramBotClient client, IEnumerable<long> teamChatIds,
+        Guid teamId, long chatId, CancellationToken cancellationToken)
+    {
+        var userIdToBuyerIdToDebt = debtsCalculator.GetUserIdToBuyerIdToDebt(teamId);
 
         foreach (var teamChatId in teamChatIds)
         {
@@ -148,10 +179,8 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
                 replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels!),
                 cancellationToken: cancellationToken);
         }
-
-        deleteAllTeamIdTransaction.DeleteAllTeamId(teamId);
     }
-    
+
     private void AddPhoneNumberAndTinkoffLink(string messageText, long chatId)
     {
         messageText = messageText.Trim();
@@ -176,28 +205,6 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
                 break;
             }
-        }
-    }
-
-    private async Task SendRequisitesAndDebtsAsync(ITelegramBotClient client, long chatId,
-        Dictionary<long, double> buyersToMoney, CancellationToken cancellationToken)
-    {
-        var message = GetDebtMessageText(buyersToMoney);
-
-        await client.SendTextMessageAsync(
-            chatId: chatId,
-            text: message,
-            parseMode: ParseMode.Html,
-            cancellationToken: cancellationToken
-        );
-
-        if (message != botPhrasesProvider.WithoutDebt)
-        {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: botPhrasesProvider.Goodbye!,
-                parseMode: ParseMode.Html,
-                cancellationToken: cancellationToken);
         }
     }
 
@@ -230,7 +237,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
         return $"Тебе нужно заплатить:\n\n{debtMessage}";
     }
-    
+
     private static string GetRequisitesAndDebtsMessageText(string buyerUserName, string phoneNumber,
         double money, string? tinkoffLink = null)
         => tinkoffLink == null
