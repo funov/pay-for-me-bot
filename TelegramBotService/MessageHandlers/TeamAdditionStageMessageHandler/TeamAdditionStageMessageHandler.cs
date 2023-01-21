@@ -17,7 +17,7 @@ namespace TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
 public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 {
     private readonly string[] teamSelectionLabels;
-    private readonly string[] splitPurchasesButtons;
+    private readonly string[] goToSplitPurchasesWithQuitButtons;
 
     private readonly ILogger<TeamAdditionStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
@@ -45,7 +45,8 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
         this.mapper = mapper;
 
         teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton };
-        splitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases };
+        goToSplitPurchasesWithQuitButtons
+            = new[] { botPhrasesProvider.GoToSplitPurchases, botPhrasesProvider.QuitTeam };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -83,19 +84,41 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
                     parseMode: ParseMode.Html,
                     replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                     cancellationToken: cancellationToken);
-                break;
+                return;
             case "/help":
                 await client.SendTextMessageAsync(
                     chatId: chatId,
                     text: botPhrasesProvider.Help,
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
-                break;
+                return;
         }
 
         if (Guid.TryParse(message.Text, out var teamId))
         {
+            var userChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
+
+            if (!userChatIds.Any())
+            {
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: botPhrasesProvider.TeamNotExist,
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
+                    cancellationToken: cancellationToken);
+                return;
+            }
+
             await HandleTeamIdAsync(client, chatId, userName, teamId, cancellationToken);
+        }
+        else
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.IncorrectTeamId,
+                parseMode: ParseMode.Html,
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
+                cancellationToken: cancellationToken);
         }
     }
 
@@ -126,7 +149,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             chatId: chatId,
             text: botPhrasesProvider.StartAddingProducts,
             parseMode: ParseMode.Html,
-            replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(splitPurchasesButtons),
+            replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesWithQuitButtons),
             cancellationToken: cancellationToken
         );
     }
@@ -161,7 +184,7 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
             chatId: chatId,
             text: botPhrasesProvider.StartAddingProducts,
             parseMode: ParseMode.Html,
-            replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(splitPurchasesButtons),
+            replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesWithQuitButtons),
             cancellationToken: cancellationToken
         );
 

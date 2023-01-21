@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using SqliteProvider.Exceptions;
 using SqliteProvider.Types;
 
@@ -6,12 +5,12 @@ namespace SqliteProvider.Repositories.BotPhrasesRepository;
 
 public class BotPhraseRepository : IBotPhraseRepository
 {
-    private readonly DbContext db;
+    private readonly DbContext dbContext;
 
-    public BotPhraseRepository(IConfiguration config)
-        => db = new DbContext(config.GetValue<string>("DbConnectionString"));
+    public BotPhraseRepository(DbContext dbContext)
+        => this.dbContext = dbContext;
 
     public string GetBotPhrase(BotPhraseType phraseType)
-        => db.BotPhrases.FirstOrDefault(botPhrasesTable => botPhrasesTable.Type == phraseType)?.Phrase
+        => dbContext.BotPhrases.FirstOrDefault(botPhrasesTable => botPhrasesTable.Type == phraseType)?.Phrase
            ?? throw new EmptyBotPhrasesException("Check BotPhrases table in db");
 }

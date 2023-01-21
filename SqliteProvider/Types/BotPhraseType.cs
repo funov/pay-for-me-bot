@@ -20,5 +20,9 @@ public enum BotPhraseType
     ReceiptError,
     ReceiptApiError,
     StartAddingProducts,
-    SendMeTeamId
+    SendMeTeamId,
+    QuitTeam,
+    AddFirstProduct,
+    IncorrectTeamId,
+    TeamNotExist
 }

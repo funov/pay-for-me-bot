@@ -21,4 +21,8 @@ public interface IBotPhrasesProvider
     string ReceiptApiError { get; }
     string StartAddingProducts { get; }
     string SendMeTeamId { get; }
+    public string QuitTeam { get; }
+    public string AddFirstProduct { get; }
+    string IncorrectTeamId { get; }
+    string TeamNotExist { get; }
 }

@@ -1,5 +1,4 @@
 using AutoMapper;
-using Microsoft.Extensions.Configuration;
 using SqliteProvider.Models;
 using SqliteProvider.Tables;
 
@@ -8,20 +7,20 @@ namespace SqliteProvider.Repositories.ProductRepository;
 public class ProductRepository : IProductRepository
 {
     private readonly IMapper mapper;
-    private readonly DbContext db;
+    private readonly DbContext dbContext;
 
-    public ProductRepository(IConfiguration config, IMapper mapper)
+    public ProductRepository(DbContext dbContext, IMapper mapper)
     {
         this.mapper = mapper;
-        db = new DbContext(config.GetValue<string>("DbConnectionString"));
+        this.dbContext = dbContext;
     }
 
     public void AddProduct(Product product)
     {
         var productTable = mapper.Map<ProductTable>(product);
 
-        db.Products.Add(productTable);
-        db.SaveChanges();
+        dbContext.Products.Add(productTable);
+        dbContext.SaveChanges();
     }
 
     public void AddProducts(IEnumerable<Product> productModels)
@@ -32,29 +31,24 @@ public class ProductRepository : IProductRepository
 
     public IEnumerable<Product> GetProductsByTeamId(Guid teamId)
     {
-        var productTables = db.Products
+        var productTables = dbContext.Products
             .Where(productTable => productTable.TeamId == teamId);
 
         return productTables
             .Select(productTable => mapper.Map<Product>(productTable));
     }
 
-    public void DeleteAllProductsByTeamId(DbContext transactionDbContext, Guid teamId)
+    public int GetAddedProductsCount(long buyerChatId, Guid teamId)
     {
-        var productTables = transactionDbContext.Products
-            .Where(productTable => productTable.TeamId == teamId);
-
-        foreach (var productTable in productTables)
-            transactionDbContext.Products.Remove(productTable);
-
-        transactionDbContext.SaveChanges();
+        return dbContext.Products
+            .Count(productTable => productTable.BuyerChatId == buyerChatId && productTable.TeamId == teamId);
     }
-
+    
     public long GetBuyerChatId(Guid productId)
-        => db.Products.FirstOrDefault(productTable => productTable.Id == productId)!.BuyerChatId;
+        => dbContext.Products.FirstOrDefault(productTable => productTable.Id == productId)!.BuyerChatId;
 
     public double GetProductTotalPriceByProductId(Guid productId)
-        => db.Products
+        => dbContext.Products
             .FirstOrDefault(productTable => productTable.Id == productId)
             !.TotalPrice;
 }

@@ -31,6 +31,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     private readonly IProductInlineButtonSender productInlineButtonSender;
 
     private readonly string[] goToSplitPurchasesButtons;
+    private readonly string[] goToSplitPurchasesWithQuitButtons;
     private readonly string[] transitionToEndButtons;
 
     public ProductsSelectionStageMessageHandler(
@@ -56,6 +57,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
         transitionToEndButtons = new[]
             { botPhrasesProvider.TransitionToEndYes, botPhrasesProvider.TransitionToEndNo };
+        goToSplitPurchasesWithQuitButtons =
+            new[] { botPhrasesProvider.GoToSplitPurchases, botPhrasesProvider.QuitTeam };
         goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases };
     }
 
@@ -95,12 +98,25 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
         if (message.Text! == botPhrasesProvider.TransitionToEndNo)
         {
-            await client.SendTextMessageAsync(
-                chatId: chatId,
-                text: botPhrasesProvider.PushIfReadyToSplitPurchase,
-                parseMode: ParseMode.Html,
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
-                cancellationToken: cancellationToken);
+            if (productRepository.GetAddedProductsCount(chatId, teamId) == 0)
+            {
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: botPhrasesProvider.PushIfReadyToSplitPurchase,
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesWithQuitButtons),
+                    cancellationToken: cancellationToken);
+            }
+            else
+            {
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: botPhrasesProvider.PushIfReadyToSplitPurchase,
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
+                    cancellationToken: cancellationToken);
+            }
+
             return;
         }
 
@@ -112,6 +128,11 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                 parseMode: ParseMode.Html,
                 cancellationToken: cancellationToken);
             return;
+        }
+
+        if (message.Text! == botPhrasesProvider.QuitTeam)
+        {
+            // TODO
         }
 
         if (Product.TryParse(message.Text!, out var dbProduct))
@@ -149,6 +170,17 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
             .ToList();
 
         var receiptId = Guid.NewGuid();
+
+        if (productRepository.GetAddedProductsCount(chatId, teamId) == 0)
+        {
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.AddFirstProduct,
+                parseMode: ParseMode.Html,
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
+                cancellationToken: cancellationToken);
+        }
+
         var productId = AddProduct(dbProduct, receiptId, chatId, teamId);
 
         var products = new List<Product> { dbProduct };
@@ -211,6 +243,17 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                 .GetUserChatIdsByTeamId(teamId)
                 .ToList();
             var receiptId = Guid.NewGuid();
+
+            if (productRepository.GetAddedProductsCount(chatId, teamId) == 0)
+            {
+                await client.SendTextMessageAsync(
+                    chatId: chatId,
+                    text: botPhrasesProvider.AddFirstProduct,
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(goToSplitPurchasesButtons),
+                    cancellationToken: cancellationToken);
+            }
+
             var productIds = AddProducts(products, receiptId, chatId, teamId);
 
             await SendAddedProductsToTeammatesAsync(teamUserChatIds, userName, client, products, productIds,

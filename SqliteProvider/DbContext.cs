@@ -25,5 +25,6 @@ public sealed class DbContext : Microsoft.EntityFrameworkCore.DbContext
             throw new NullConnectionStringException("Configuration error");
 
         optionsBuilder.UseSqlite(connectionSting);
+        optionsBuilder.EnableSensitiveDataLogging();
     }
 }

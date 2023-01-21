@@ -1,41 +1,22 @@
-using Microsoft.Extensions.Configuration;
 using SqliteProvider.Exceptions;
-using SqliteProvider.Repositories.ProductRepository;
-using SqliteProvider.Repositories.UserProductBindingRepository;
-using SqliteProvider.Repositories.UserRepository;
 
 namespace SqliteProvider.Transactions.DeleteAllTeamIdTransaction;
 
 public class DeleteAllTeamIdTransaction : IDeleteAllTeamIdTransaction
 {
-    private readonly DbContext db;
+    private readonly DbContext dbContext;
 
-    private readonly IUserRepository userRepository;
-    private readonly IProductRepository productRepository;
-    private readonly IUserProductBindingRepository userProductBindingRepository;
-
-    public DeleteAllTeamIdTransaction(
-        IConfiguration config,
-        IUserRepository userRepository,
-        IProductRepository productRepository,
-        IUserProductBindingRepository userProductBindingRepository)
-    {
-        this.userRepository = userRepository;
-        this.productRepository = productRepository;
-        this.userProductBindingRepository = userProductBindingRepository;
-
-        db = new DbContext(config.GetValue<string>("DbConnectionString"));
-    }
+    public DeleteAllTeamIdTransaction(DbContext dbContext) => this.dbContext = dbContext;
 
     public void DeleteAllTeamId(Guid teamId)
     {
-        using var transaction = db.Database.BeginTransaction();
+        using var transaction = dbContext.Database.BeginTransaction();
 
         try
         {
-            userRepository.DeleteAllUsersByTeamId(db, teamId);
-            productRepository.DeleteAllProductsByTeamId(db, teamId);
-            userProductBindingRepository.DeleteAllUserProductBindingsByTeamId(db, teamId);
+            DeleteAllUsersByTeamId(teamId);
+            DeleteAllProductsByTeamId(teamId);
+            DeleteAllUserProductBindingsByTeamId(teamId);
 
             transaction.Commit();
         }
@@ -43,5 +24,38 @@ public class DeleteAllTeamIdTransaction : IDeleteAllTeamIdTransaction
         {
             throw new DeleteAllTeamIdException("Fail remove, db rollback");
         }
+    }
+
+    private void DeleteAllUsersByTeamId(Guid teamId)
+    {
+        var userTables = dbContext.Users
+            .Where(userTable => userTable.TeamId == teamId);
+
+        foreach (var userTable in userTables)
+            dbContext.Users.Remove(userTable);
+
+        dbContext.SaveChanges();
+    }
+
+    private void DeleteAllProductsByTeamId(Guid teamId)
+    {
+        var productTables = dbContext.Products
+            .Where(productTable => productTable.TeamId == teamId);
+
+        foreach (var productTable in productTables)
+            dbContext.Products.Remove(productTable);
+
+        dbContext.SaveChanges();
+    }
+
+    private void DeleteAllUserProductBindingsByTeamId(Guid teamId)
+    {
+        var bindingTables = dbContext.UserProductBindings
+            .Where(bindingTable => bindingTable.TeamId == teamId);
+
+        foreach (var bindingTable in bindingTables)
+            dbContext.UserProductBindings.Remove(bindingTable);
+
+        dbContext.SaveChanges();
     }
 }

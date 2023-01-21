@@ -11,6 +11,7 @@ using TelegramBotService.TelegramBotService;
 using ReceiptApiClient;
 using ReceiptApiClient.ReceiptApiClient;
 using Serilog;
+using SqliteProvider;
 using SqliteProvider.Exceptions;
 using SqliteProvider.Repositories.BotPhrasesRepository;
 using SqliteProvider.Repositories.ProductRepository;
@@ -42,7 +43,7 @@ public static class Program
         Log.Logger.Information("Application Starting");
 
         var host = Host.CreateDefaultBuilder()
-            .ConfigureServices((_, services) =>
+            .ConfigureServices((hostBuilderContext, services) =>
             {
                 services.AddSingleton<IReceiptApiClient, ReceiptApiClient.ReceiptApiClient.ReceiptApiClient>();
                 services.AddHttpClient<ReceiptApiService>();
@@ -54,19 +55,24 @@ public static class Program
 
                 services.AddSingleton<ITelegramBotService, TelegramBotService.TelegramBotService>();
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
-                services
-                    .AddSingleton<IProductInlineButtonSender, ProductInlineButtonSender>();
+                services.AddSingleton<IProductInlineButtonSender, ProductInlineButtonSender>();
                 services.AddSingleton<IBotPhrasesProvider, BotPhrasesProvider.BotPhrasesProvider>();
 
                 services.AddSingleton<IPaymentStageMessageHandler, PaymentStageMessageHandler>();
                 services.AddSingleton<IProductsSelectionStageMessageHandler, ProductsSelectionStageMessageHandler>();
                 services.AddSingleton<ITeamAdditionStageMessageHandler, TeamAdditionStageMessageHandler>();
 
-                services.AddSingleton<IProductRepository, ProductRepository>();
-                services.AddSingleton<IUserRepository, UserRepository>();
-                services.AddSingleton<IUserProductBindingRepository, UserProductBindingRepository>();
-                services.AddSingleton<IBotPhraseRepository, BotPhraseRepository>();
-                services.AddSingleton<IDeleteAllTeamIdTransaction, DeleteAllTeamIdTransaction>();
+                services.AddScoped<DbContext, DbContext>(_ =>
+                {
+                    var config = hostBuilderContext.Configuration;
+                    var connectionString = config.GetValue<string>("DbConnectionString");
+                    return new DbContext(connectionString);
+                });
+                services.AddScoped<IProductRepository, ProductRepository>();
+                services.AddScoped<IUserRepository, UserRepository>();
+                services.AddScoped<IUserProductBindingRepository, UserProductBindingRepository>();
+                services.AddScoped<IBotPhraseRepository, BotPhraseRepository>();
+                services.AddScoped<IDeleteAllTeamIdTransaction, DeleteAllTeamIdTransaction>();
 
                 services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
                 services.AddAutoMapper(typeof(ProductsSelectionStageMessageHandler).Assembly);

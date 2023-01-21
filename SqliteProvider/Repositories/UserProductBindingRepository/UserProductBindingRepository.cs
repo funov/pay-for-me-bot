@@ -1,5 +1,4 @@
 using AutoMapper;
-using Microsoft.Extensions.Configuration;
 using SqliteProvider.Models;
 using SqliteProvider.Tables;
 
@@ -8,17 +7,17 @@ namespace SqliteProvider.Repositories.UserProductBindingRepository;
 public class UserProductBindingRepository : IUserProductBindingRepository
 {
     private readonly IMapper mapper;
-    private readonly DbContext db;
+    private readonly DbContext dbContext;
 
-    public UserProductBindingRepository(IConfiguration config, IMapper mapper)
+    public UserProductBindingRepository(DbContext dbContext, IMapper mapper)
     {
         this.mapper = mapper;
-        db = new DbContext(config.GetValue<string>("DbConnectionString"));
+        this.dbContext = dbContext;
     }
 
     public IEnumerable<UserProductBinding> GetProductBindingsByUserChatId(long userChatId, Guid teamId)
     {
-        var userProductBindingTables = db.UserProductBindings
+        var userProductBindingTables = dbContext.UserProductBindings
             .Where(userProductTable
                 => userProductTable.UserChatId == userChatId && userProductTable.TeamId == teamId);
 
@@ -28,14 +27,14 @@ public class UserProductBindingRepository : IUserProductBindingRepository
 
     public void DeleteUserProductBinding(long userChatId, Guid teamId, Guid productId)
     {
-        var binding = db.UserProductBindings
+        var binding = dbContext.UserProductBindings
             .FirstOrDefault(userProductTable
                 => userProductTable.UserChatId == userChatId
                    && userProductTable.TeamId == teamId
                    && userProductTable.ProductId == productId);
 
-        db.UserProductBindings.Remove(binding!);
-        db.SaveChanges();
+        dbContext.UserProductBindings.Remove(binding!);
+        dbContext.SaveChanges();
     }
 
     public void AddUserProductBinding(Guid id, long userChatId, Guid teamId, Guid productId)
@@ -48,21 +47,10 @@ public class UserProductBindingRepository : IUserProductBindingRepository
             TeamId = teamId
         };
 
-        db.UserProductBindings.Add(binding);
-        db.SaveChanges();
-    }
-
-    public void DeleteAllUserProductBindingsByTeamId(DbContext transactionDbContext, Guid teamId)
-    {
-        var bindingTables = transactionDbContext.UserProductBindings
-            .Where(bindingTable => bindingTable.TeamId == teamId);
-
-        foreach (var bindingTable in bindingTables)
-            transactionDbContext.UserProductBindings.Remove(bindingTable);
-
-        transactionDbContext.SaveChanges();
+        dbContext.UserProductBindings.Add(binding);
+        dbContext.SaveChanges();
     }
 
     public int GetUserProductBindingCount(Guid productId)
-        => db.UserProductBindings.Count(binding => binding.ProductId == productId);
+        => dbContext.UserProductBindings.Count(binding => binding.ProductId == productId);
 }

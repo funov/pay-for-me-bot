@@ -24,6 +24,10 @@ public class BotPhrasesProvider : IBotPhrasesProvider
     public string ReceiptApiError { get; }
     public string StartAddingProducts { get; }
     public string SendMeTeamId { get; }
+    public string QuitTeam { get; }
+    public string AddFirstProduct { get; }
+    public string IncorrectTeamId { get; }
+    public string TeamNotExist { get; }
 
     public BotPhrasesProvider(IBotPhraseRepository botPhraseRepository)
     {
@@ -46,5 +50,9 @@ public class BotPhrasesProvider : IBotPhrasesProvider
         StartAddingProducts = botPhraseRepository.GetBotPhrase(BotPhraseType.StartAddingProducts);
         SendMeTeamId = botPhraseRepository.GetBotPhrase(BotPhraseType.SendMeTeamId);
         CreateOrJoinTeam = botPhraseRepository.GetBotPhrase(BotPhraseType.CreateOrJoinTeam);
+        QuitTeam = botPhraseRepository.GetBotPhrase(BotPhraseType.QuitTeam);
+        AddFirstProduct = botPhraseRepository.GetBotPhrase(BotPhraseType.AddFirstProduct);
+        IncorrectTeamId = botPhraseRepository.GetBotPhrase(BotPhraseType.IncorrectTeamId);
+        TeamNotExist = botPhraseRepository.GetBotPhrase(BotPhraseType.TeamNotExist);
     }
 }
