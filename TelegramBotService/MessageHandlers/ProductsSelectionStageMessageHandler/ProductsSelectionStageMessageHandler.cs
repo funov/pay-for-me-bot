@@ -138,6 +138,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
         if (message.Text! == botPhrasesProvider.QuitTeam)
         {
+            deleteUsersAndBindingsTransaction.DeleteUsersAndBindings(chatId, teamId);
+
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.CreateOrJoinTeam,
@@ -158,8 +160,6 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
             }
-
-            deleteUsersAndBindingsTransaction.DeleteUsersAndBindings(chatId, teamId);
         }
 
         if (Product.TryParse(message.Text!, out var dbProduct))
