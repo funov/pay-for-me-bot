@@ -73,7 +73,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         var chatId = message.Chat.Id;
         var username = message.Chat.Username!;
 
-        log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{userName}",
+        log.LogInformation("Received a '{messageText}' message in chat {chatId} from @{username}",
             message.Text, chatId, username);
 
         var user = userRepository.GetUser(chatId);
@@ -140,6 +140,9 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         {
             deleteUsersAndBindingsTransaction.DeleteUsersAndBindings(chatId, teamId);
 
+            log.LogInformation("@{username} in chat {chatId} leave the team {teamId}",
+                username, chatId, teamId);
+
             await client.SendTextMessageAsync(
                 chatId: chatId,
                 text: botPhrasesProvider.CreateOrJoinTeam,
@@ -160,6 +163,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
             }
+
+            return;
         }
 
         if (Product.TryParse(message.Text!, out var dbProduct))
