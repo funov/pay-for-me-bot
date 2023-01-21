@@ -6,6 +6,7 @@ using ReceiptApiClient.ReceiptApiClient;
 using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
+using SqliteProvider.Transactions.DeleteUsersAndBindingsTransaction;
 using SqliteProvider.Types;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -29,10 +30,12 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     private readonly IUserProductBindingRepository userProductBindingRepository;
     private readonly IBotPhrasesProvider botPhrasesProvider;
     private readonly IProductInlineButtonSender productInlineButtonSender;
+    private readonly IDeleteUsersAndBindingsTransaction deleteUsersAndBindingsTransaction;
 
     private readonly string[] goToSplitPurchasesButtons;
     private readonly string[] goToSplitPurchasesWithQuitButtons;
     private readonly string[] transitionToEndButtons;
+    private readonly string[] teamSelectionLabels;
 
     public ProductsSelectionStageMessageHandler(
         ILogger<ProductsSelectionStageMessageHandler> log,
@@ -43,7 +46,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         IProductRepository productRepository,
         IUserProductBindingRepository userProductBindingRepository,
         IBotPhrasesProvider botPhrasesProvider,
-        IProductInlineButtonSender productInlineButtonSender)
+        IProductInlineButtonSender productInlineButtonSender,
+        IDeleteUsersAndBindingsTransaction deleteUsersAndBindingsTransaction)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
@@ -54,12 +58,14 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         this.userProductBindingRepository = userProductBindingRepository;
         this.botPhrasesProvider = botPhrasesProvider;
         this.productInlineButtonSender = productInlineButtonSender;
+        this.deleteUsersAndBindingsTransaction = deleteUsersAndBindingsTransaction;
 
         transitionToEndButtons = new[]
             { botPhrasesProvider.TransitionToEndYes, botPhrasesProvider.TransitionToEndNo };
         goToSplitPurchasesWithQuitButtons =
             new[] { botPhrasesProvider.GoToSplitPurchases, botPhrasesProvider.QuitTeam };
         goToSplitPurchasesButtons = new[] { botPhrasesProvider.GoToSplitPurchases };
+        teamSelectionLabels = new[] { botPhrasesProvider.CreateTeamButton, botPhrasesProvider.JoinTeamButton };
     }
 
     public async Task HandleTextAsync(ITelegramBotClient client, Message message, CancellationToken cancellationToken)
@@ -132,7 +138,28 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
 
         if (message.Text! == botPhrasesProvider.QuitTeam)
         {
-            // TODO
+            await client.SendTextMessageAsync(
+                chatId: chatId,
+                text: botPhrasesProvider.CreateOrJoinTeam,
+                parseMode: ParseMode.Html,
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
+                cancellationToken: cancellationToken);
+
+            var teamChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
+
+            foreach (var teamChatId in teamChatIds)
+            {
+                if (teamChatId == chatId)
+                    continue;
+
+                await client.SendTextMessageAsync(
+                    chatId: teamChatId,
+                    text: $"@{username} вышел из команды!",
+                    parseMode: ParseMode.Html,
+                    cancellationToken: cancellationToken);
+            }
+
+            deleteUsersAndBindingsTransaction.DeleteUsersAndBindings(chatId, teamId);
         }
 
         if (Product.TryParse(message.Text!, out var dbProduct))

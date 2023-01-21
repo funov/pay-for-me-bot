@@ -16,9 +16,6 @@ namespace TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
 
 public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
 {
-    private readonly string[] teamSelectionLabels;
-    private readonly string[] goToSplitPurchasesWithQuitButtons;
-
     private readonly ILogger<TeamAdditionStageMessageHandler> log;
     private readonly IKeyboardMarkup keyboardMarkup;
     private readonly IUserRepository userRepository;
@@ -26,6 +23,9 @@ public class TeamAdditionStageMessageHandler : ITeamAdditionStageMessageHandler
     private readonly IBotPhrasesProvider botPhrasesProvider;
     private readonly IProductInlineButtonSender productInlineButtonSender;
     private readonly IMapper mapper;
+
+    private readonly string[] teamSelectionLabels;
+    private readonly string[] goToSplitPurchasesWithQuitButtons;
 
     public TeamAdditionStageMessageHandler(
         ILogger<TeamAdditionStageMessageHandler> log,

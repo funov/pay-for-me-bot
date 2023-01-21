@@ -22,7 +22,7 @@ public class DeleteAllTeamIdTransaction : IDeleteAllTeamIdTransaction
         }
         catch (Exception)
         {
-            throw new DeleteAllTeamIdException("Fail remove, db rollback");
+            throw new DeleteTransactionException("Delete fail, db rollback");
         }
     }
 

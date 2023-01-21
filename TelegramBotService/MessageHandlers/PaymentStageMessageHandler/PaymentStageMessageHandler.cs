@@ -23,7 +23,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
     private readonly IRequisiteMessageParser requisiteMessageParser;
     private readonly IDeleteAllTeamIdTransaction deleteAllTeamIdTransaction;
 
-    private readonly string?[] teamSelectionLabels;
+    private readonly string[] teamSelectionLabels;
     private readonly char[] requisitesSeparators;
 
     public PaymentStageMessageHandler(
@@ -89,7 +89,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
             if (userRepository.IsAllTeamHasPhoneNumber(teamId))
             {
-                await FinishTeamAsync(client, chatId, teamId, cancellationToken);
+                await FinishTeamAsync(client, teamId, cancellationToken);
                 return;
             }
 
@@ -113,13 +113,12 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
 
     private async Task FinishTeamAsync(
         ITelegramBotClient client,
-        long chatId,
         Guid teamId,
         CancellationToken cancellationToken)
     {
         var teamChatIds = userRepository.GetUserChatIdsByTeamId(teamId);
 
-        await CompleteTeamsAndSendDebtsAsync(client, teamChatIds, teamId, chatId, cancellationToken);
+        await CompleteTeamsAndSendDebtsAsync(client, teamChatIds, teamId, cancellationToken);
 
         deleteAllTeamIdTransaction.DeleteAllTeamId(teamId);
     }
@@ -147,7 +146,7 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
     }
 
     private async Task CompleteTeamsAndSendDebtsAsync(ITelegramBotClient client, IEnumerable<long> teamChatIds,
-        Guid teamId, long chatId, CancellationToken cancellationToken)
+        Guid teamId, CancellationToken cancellationToken)
     {
         var userIdToBuyerIdToDebt = debtsCalculator.GetUserIdToBuyerIdToDebt(teamId);
 
@@ -155,13 +154,11 @@ public class PaymentStageMessageHandler : IPaymentStageMessageHandler
         {
             await SendRequisitesAndDebtsAsync(client, teamChatId, userIdToBuyerIdToDebt[teamChatId], cancellationToken);
 
-            userRepository.ChangeUserStage(chatId, teamId, UserStage.TeamAddition);
-
             await client.SendTextMessageAsync(
                 chatId: teamChatId,
                 text: botPhrasesProvider.CreateOrJoinTeam,
                 parseMode: ParseMode.Html,
-                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels!),
+                replyMarkup: keyboardMarkup.GetReplyKeyboardMarkup(teamSelectionLabels),
                 cancellationToken: cancellationToken);
         }
     }

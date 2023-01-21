@@ -18,6 +18,7 @@ using SqliteProvider.Repositories.ProductRepository;
 using SqliteProvider.Repositories.UserProductBindingRepository;
 using SqliteProvider.Repositories.UserRepository;
 using SqliteProvider.Transactions.DeleteAllTeamIdTransaction;
+using SqliteProvider.Transactions.DeleteUsersAndBindingsTransaction;
 using TelegramBotService.BotPhrasesProvider;
 using TelegramBotService.ButtonUtils.KeyboardMarkup;
 using TelegramBotService.ButtonUtils.ProductInlineButtonSender;
@@ -73,6 +74,7 @@ public static class Program
                 services.AddScoped<IUserProductBindingRepository, UserProductBindingRepository>();
                 services.AddScoped<IBotPhraseRepository, BotPhraseRepository>();
                 services.AddScoped<IDeleteAllTeamIdTransaction, DeleteAllTeamIdTransaction>();
+                services.AddScoped<IDeleteUsersAndBindingsTransaction, DeleteUsersAndBindingsTransaction>();
 
                 services.AddAutoMapper(typeof(ReceiptApiClient.ReceiptApiClient.ReceiptApiClient).Assembly);
                 services.AddAutoMapper(typeof(ProductsSelectionStageMessageHandler).Assembly);
