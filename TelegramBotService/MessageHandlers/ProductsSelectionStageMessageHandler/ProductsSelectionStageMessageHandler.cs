@@ -16,6 +16,7 @@ using TelegramBotService.BotPhrasesProvider;
 using TelegramBotService.ButtonUtils.KeyboardMarkup;
 using TelegramBotService.ButtonUtils.ProductInlineButtonSender;
 using TelegramBotService.Models;
+using TelegramBotService.TeamFinisher;
 
 namespace TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 
@@ -31,6 +32,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     private readonly IBotPhrasesProvider botPhrasesProvider;
     private readonly IProductInlineButtonSender productInlineButtonSender;
     private readonly IDeleteUsersAndBindingsTransaction deleteUsersAndBindingsTransaction;
+    private readonly ITeamFinisher teamFinisher;
 
     private readonly string[] goToSplitPurchasesButtons;
     private readonly string[] goToSplitPurchasesWithQuitButtons;
@@ -47,7 +49,8 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         IUserProductBindingRepository userProductBindingRepository,
         IBotPhrasesProvider botPhrasesProvider,
         IProductInlineButtonSender productInlineButtonSender,
-        IDeleteUsersAndBindingsTransaction deleteUsersAndBindingsTransaction)
+        IDeleteUsersAndBindingsTransaction deleteUsersAndBindingsTransaction,
+        ITeamFinisher teamFinisher)
     {
         this.log = log;
         this.receiptApiClient = receiptApiClient;
@@ -59,6 +62,7 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
         this.botPhrasesProvider = botPhrasesProvider;
         this.productInlineButtonSender = productInlineButtonSender;
         this.deleteUsersAndBindingsTransaction = deleteUsersAndBindingsTransaction;
+        this.teamFinisher = teamFinisher;
 
         transitionToEndButtons = new[]
             { botPhrasesProvider.TransitionToEndYes, botPhrasesProvider.TransitionToEndNo };
@@ -162,6 +166,11 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
                     text: $"@{username} вышел из команды!",
                     parseMode: ParseMode.Html,
                     cancellationToken: cancellationToken);
+            }
+
+            if (userRepository.IsAllTeamHasPhoneNumber(teamId))
+            {
+                await teamFinisher.FinishTeamAsync(client, teamId, cancellationToken);
             }
 
             return;
@@ -424,6 +433,11 @@ public class ProductsSelectionStageMessageHandler : IProductsSelectionStageMessa
     {
         foreach (var teamUserChatId in teamUserChatIds)
         {
+            if (userRepository.GetUser(teamUserChatId)!.Stage == UserStage.Payment)
+            {
+                continue;
+            }
+
             var user = userRepository.GetUser(teamUserChatId);
             var teamUserName = user!.Username!;
 

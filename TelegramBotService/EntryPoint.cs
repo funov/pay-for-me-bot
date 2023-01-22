@@ -25,6 +25,7 @@ using TelegramBotService.ButtonUtils.ProductInlineButtonSender;
 using TelegramBotService.MessageHandlers.PaymentStageMessageHandler;
 using TelegramBotService.MessageHandlers.ProductsSelectionStageMessageHandler;
 using TelegramBotService.MessageHandlers.TeamAdditionStageMessageHandler;
+using TelegramBotService.TeamFinisher;
 
 namespace TelegramBotService;
 
@@ -58,6 +59,7 @@ public static class Program
                 services.AddSingleton<IKeyboardMarkup, KeyboardMarkup>();
                 services.AddSingleton<IProductInlineButtonSender, ProductInlineButtonSender>();
                 services.AddSingleton<IBotPhrasesProvider, BotPhrasesProvider.BotPhrasesProvider>();
+                services.AddSingleton<ITeamFinisher, TeamFinisher.TeamFinisher>();
 
                 services.AddSingleton<IPaymentStageMessageHandler, PaymentStageMessageHandler>();
                 services.AddSingleton<IProductsSelectionStageMessageHandler, ProductsSelectionStageMessageHandler>();
